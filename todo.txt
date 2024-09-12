@@ -1,0 +1,11 @@
+In order:
+	Gravity
+	Chunk manager
+	Water/liquids
+	Infinite world generation
+	Frustum culling
+	Health system
+	User interface
+	Inventory
+	Day-night cycle (with that, a lighting shader)
+	Crafting
