@@ -1,5 +1,4 @@
 In order:
-	Gravity
 	Chunk manager
 	Water/liquids
 	Infinite world generation

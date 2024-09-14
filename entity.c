@@ -66,7 +66,11 @@ void entity_player_update(entity_t* ent, float delta)
 	}
 	if (window_input_clicked(INPUT_PLACE_BLOCK))
 	{
-		world_block_set(world_ray_neighbor(world_ray_cast(current_camera.pos, camera_forward(), 5.0F)), BLOCK_STONE);
+		block_coords_t bc = world_ray_neighbor(world_ray_cast(current_camera.pos, camera_forward(), 5.0F));
+		if (!aabb_collides_aabb(ent->hitbox, (aabb_t) { .min = block_coords_to_vector(bc), .max = vector3_add_scalar(block_coords_to_vector(bc), 1.0F) }))
+		{
+			world_block_set(bc, BLOCK_STONE);
+		}
 	}
 }
 
