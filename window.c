@@ -251,6 +251,7 @@ static void window_input_update(void)
 	state[INPUT_LEFT] =			GetAsyncKeyState('A');
 	state[INPUT_RIGHT] =		GetAsyncKeyState('D');
 	state[INPUT_SPRINT] =		GetAsyncKeyState(VK_LSHIFT);
+	state[INPUT_JUMP] =			GetAsyncKeyState(VK_SPACE);
 
 	state[INPUT_BREAK_BLOCK] =	GetAsyncKeyState(VK_LBUTTON);
 	state[INPUT_PLACE_BLOCK] =	GetAsyncKeyState(VK_RBUTTON);

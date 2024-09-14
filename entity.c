@@ -24,27 +24,41 @@ void entity_player_update(entity_t* ent, float delta)
 	current_camera.pitch = min(current_camera.pitch, DEGREES_TO_RADIANS(89.9F));
 	current_camera.pitch = max(current_camera.pitch, DEGREES_TO_RADIANS(-89.9F));
 
+	vector3_t forward = camera_forward(),
+		right = camera_right();
+	forward.y = 0.0F;
+	forward = vector3_normalize(forward);
+	right.y = 0.0F;
+	right = vector3_normalize(right);
+
 	vector3_t desired = { 0 };
 	if (window_input_down(INPUT_FORWARD))
 	{
-		desired = vector3_add(desired, camera_forward());
+		desired = vector3_add(desired, forward);
 	}
 	else if (window_input_down(INPUT_BACKWARD))
 	{
-		desired = vector3_sub(desired, camera_forward());
+		desired = vector3_sub(desired, forward);
 	}
 	if (window_input_down(INPUT_LEFT))
 	{
-		desired = vector3_add(desired, camera_right());
+		desired = vector3_add(desired, right);
 	}
 	else if (window_input_down(INPUT_RIGHT))
 	{
-		desired = vector3_sub(desired, camera_right());
+		desired = vector3_sub(desired, right);
 	}
 	desired = vector3_normalize(desired);
 
 	float speed = window_input_down(INPUT_SPRINT) ? ENTITY_PLAYER_SPRINT_SPEED : ENTITY_PLAYER_SPEED;
-	ent->velocity = vector3_mul_scalar(vector3_add(ent->velocity, vector3_mul_scalar(desired, speed * delta)), 0.9F);
+	ent->velocity = vector3_mul(vector3_add(ent->velocity, vector3_mul_scalar(desired, speed)), (vector3_t) { ENTITY_DRAG_CONSTANT, 1.0F, ENTITY_DRAG_CONSTANT });
+
+	if (window_input_clicked(INPUT_JUMP) && ent->grounded)
+	{
+		ent->velocity.y = 6.0F;
+	}
+
+	entity_gravity_then_move(ent, delta);
 
 	if (window_input_clicked(INPUT_BREAK_BLOCK))
 	{
@@ -58,7 +72,7 @@ void entity_player_update(entity_t* ent, float delta)
 
 #define MOVEMENT_EPSILON	0.01F
 
-void entity_move(entity_t* ent, vector3_t velocity)
+collision_face_t entity_move(entity_t* ent, vector3_t addend)
 {
 	graphics_debug_clear();
 	aabb_t arr[0x100];
@@ -68,7 +82,8 @@ void entity_move(entity_t* ent, vector3_t velocity)
 		vector_to_block_coords(vector3_add_scalar(ent->hitbox.max, 1.0F)),
 		arr, sizeof arr / sizeof * arr);
 
-	vector3_uarray_t uvelocity = { .vec = velocity };
+	vector3_uarray_t uvelocity = { addend };
+	collision_face_t res = 0;
 	for (int i = 0; i < 3; i++)
 	{
 		aabb_t moved = aabb_translate_axis(ent->hitbox, i, uvelocity.raw[i]);
@@ -79,6 +94,7 @@ void entity_move(entity_t* ent, vector3_t velocity)
 				continue;
 			}
 
+			res |= (uvelocity.raw[i] > 0.0F ? 0b01 : 0b10) << (i * 2);
 			float depth = (vector3_uarray_t){ aabb_collision_depth(moved, arr[j]) }.raw[i];
 			uvelocity.raw[i] += (uvelocity.raw[i] > 0.0F ? -1.0F : 1.0F) * (depth + MOVEMENT_EPSILON);
 
@@ -89,4 +105,6 @@ void entity_move(entity_t* ent, vector3_t velocity)
 		}
 		ent->hitbox = moved;
 	}
+
+	return res;
 }

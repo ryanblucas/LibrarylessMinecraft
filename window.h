@@ -23,15 +23,16 @@ pointi_t window_mouse_delta(void);
 /* Returns current mouse position */
 pointi_t window_mouse_position(void);
 
-/* Add input to window_input_update */
-
 typedef enum input
 {
+	/* Add any new inputs to window_input_update */
+
 	INPUT_FORWARD,
 	INPUT_BACKWARD,
 	INPUT_LEFT,
 	INPUT_RIGHT,
 	INPUT_SPRINT,
+	INPUT_JUMP,
 
 	INPUT_BREAK_BLOCK,
 	INPUT_PLACE_BLOCK,

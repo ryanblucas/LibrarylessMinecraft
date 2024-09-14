@@ -194,7 +194,6 @@ void world_block_set(block_coords_t coords, block_type_t type)
 void world_update(float delta)
 {
 	entity_player_update(&player, delta);
-	entity_move(&player, player.velocity);
 }
 
 void world_render(float delta)
