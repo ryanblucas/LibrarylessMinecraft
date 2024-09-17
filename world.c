@@ -8,7 +8,7 @@
 #include "entity.h"
 #include "graphics.h"
 
-#define ROUND_DOWN(c, m) (((c) < 0 ? -((-(c) + (m)) / (m)) : (c) / (m)) * (m))
+#define ROUND_DOWN(c, m) (((c) < 0 ? -((-(c) - 1 + (m)) / (m)) : (c) / (m)) * (m))
 
 struct chunk
 {
@@ -55,7 +55,7 @@ static struct chunk* world_chunk_create(int x_o, int z_o)
 	{
 		int new_reserved = chunk_list.reserved * 2;
 		struct chunk* new_arr = mc_malloc(sizeof * chunk_list.arr * new_reserved);
-		memcpy(new_arr, chunk_list.arr, chunk_list.reserved);
+		memcpy(new_arr, chunk_list.arr, sizeof * chunk_list.arr * chunk_list.reserved);
 		free(chunk_list.arr);
 		chunk_list.arr = new_arr;
 		chunk_list.reserved = new_reserved;
