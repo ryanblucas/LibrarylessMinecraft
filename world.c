@@ -8,7 +8,7 @@
 #include "entity.h"
 #include "graphics.h"
 
-#define ROUND_DOWN(c, m) (((c) < 0 ? -(((m) - (c) % (m)) / (m)) : (c) / (m)) * (m))
+#define ROUND_DOWN(c, m) (((c) < 0 ? -((-(c) + (m)) / (m)) : (c) / (m)) * (m))
 
 struct chunk
 {
