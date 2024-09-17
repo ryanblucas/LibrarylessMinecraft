@@ -49,6 +49,8 @@ shader_t graphics_shader_load(const char* vertex_path, const char* fragment_path
 void graphics_shader_delete(shader_t* shader);
 /* Sets current shader. If the shader has a "camera" matrix, this function will use the current camera */
 void graphics_shader_use(shader_t shader);
+/* Sets a shader's model transform uniform */
+void graphics_shader_transform_model(matrix_t model);
 
 /*	Creates vertex buffer. Start and len can both be 0, but if 
 	they aren't they specify the starting values for the buffer. */

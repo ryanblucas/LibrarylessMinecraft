@@ -1,5 +1,4 @@
 In order:
-	Chunk manager
 	Water/liquids
 	Infinite world generation
 	Frustum culling

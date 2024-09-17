@@ -116,7 +116,7 @@ static struct vertex_array_list* world_mesh_quad(struct vertex_array_list* list,
 	return list;
 }
 
-void world_mesh_chunk(vertex_buffer_t out, const block_type_t chunk[CHUNK_BLOCK_COUNT])
+void world_chunk_mesh(vertex_buffer_t out, const block_type_t chunk[CHUNK_BLOCK_COUNT])
 {
 	/*	This is NOT a greedy mesher. That's because texture wrapping is impossible with texture atlases, but using
 		texture arrays with a greedy mesher fixes that problem AND the mipmapping problem. Just a thought, TO DO */

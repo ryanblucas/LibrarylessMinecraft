@@ -246,6 +246,8 @@ static void window_input_update(void)
 	prev_state = state;
 	state = temp;
 
+	SHORT holding_ctrl = GetAsyncKeyState(VK_LCONTROL);
+
 	state[INPUT_FORWARD] =		GetAsyncKeyState('W');
 	state[INPUT_BACKWARD] =		GetAsyncKeyState('S');
 	state[INPUT_LEFT] =			GetAsyncKeyState('A');
@@ -253,11 +255,13 @@ static void window_input_update(void)
 	state[INPUT_SPRINT] =		GetAsyncKeyState(VK_LSHIFT);
 	state[INPUT_JUMP] =			GetAsyncKeyState(VK_SPACE);
 
+	state[INPUT_TELEPORT_TO_SPAWN] = holding_ctrl && GetAsyncKeyState('T');
+
 	state[INPUT_BREAK_BLOCK] =	GetAsyncKeyState(VK_LBUTTON);
 	state[INPUT_PLACE_BLOCK] =	GetAsyncKeyState(VK_RBUTTON);
 
 	state[INPUT_TOGGLE_MOUSE_FOCUS] =	GetAsyncKeyState(VK_ESCAPE);
-	state[INPUT_TOGGLE_WIREFRAME] =		GetAsyncKeyState(VK_LCONTROL) && GetAsyncKeyState('W');
+	state[INPUT_TOGGLE_WIREFRAME] =		holding_ctrl && GetAsyncKeyState('W');
 }
 
 bool window_input_down(input_t input)

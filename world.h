@@ -13,7 +13,7 @@
 #define CHUNK_FLOOR_BLOCK_COUNT	(CHUNK_WX * CHUNK_WZ)
 #define CHUNK_BLOCK_COUNT		(CHUNK_WX * CHUNK_WY * CHUNK_WZ)
 
-#define IS_INVALID_BLOCK_COORDS(bc) ((bc).y < 0 || (bc).y >= CHUNK_WY || (bc).x < 0 || (bc).x >= CHUNK_WX || (bc).z < 0 || (bc).z >= CHUNK_WZ)
+#define IS_INVALID_BLOCK_COORDS(bc) ((bc).y < 0 || (bc).y >= CHUNK_WY)
 
 enum
 {
@@ -88,6 +88,6 @@ void world_render(float delta);
 #define CHUNK_FY(mask)			(float)((mask) / CHUNK_FLOOR_BLOCK_COUNT)
 #define CHUNK_FZ(mask)			(float)((mask % CHUNK_FLOOR_BLOCK_COUNT) / CHUNK_WX)
 
-void world_mesh_chunk(vertex_buffer_t out, const block_type_t chunk[CHUNK_BLOCK_COUNT]);
+void world_chunk_mesh(vertex_buffer_t out, const block_type_t chunk[CHUNK_BLOCK_COUNT]);
 
 #endif

@@ -14,6 +14,7 @@ void entity_player_init(entity_t* ent)
 {
 	/* Minecraft's player dimensions */
 	ent->hitbox = (aabb_t){ .max = { 0.6F, 1.8F, 0.6F } };
+	ent->hitbox = aabb_set_center(ent->hitbox, (vector3_t) { 8, 130, 8 });
 }
 
 void entity_player_update(entity_t* ent, float delta)
@@ -23,6 +24,12 @@ void entity_player_update(entity_t* ent, float delta)
 	current_camera.pitch -= DEGREES_TO_RADIANS(dm.y);
 	current_camera.pitch = min(current_camera.pitch, DEGREES_TO_RADIANS(89.9F));
 	current_camera.pitch = max(current_camera.pitch, DEGREES_TO_RADIANS(-89.9F));
+
+	if (window_input_down(INPUT_TELEPORT_TO_SPAWN))
+	{
+		ent->hitbox = aabb_set_center(ent->hitbox, (vector3_t) { 8, 130, 8 });
+		ent->velocity.y = 0.0F;
+	}
 
 	vector3_t forward = camera_forward(),
 		right = camera_right();

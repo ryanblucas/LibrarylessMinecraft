@@ -298,6 +298,14 @@ void graphics_shader_use(shader_t shader)
 	ASSERT_NO_ERROR();
 }
 
+void graphics_shader_transform_model(matrix_t model)
+{
+	struct uniform_stats* curr = graphics_shader_get_uniform("model");
+	mc_panic_if(!curr, "shader missing a uniform mat4 \"model\"");
+	glUniformMatrix4fv(curr->location, 1, GL_FALSE, model);
+	ASSERT_NO_ERROR();
+}
+
 static inline void graphics_buffer_bind(struct vertex_buffer* buf)
 {
 	if (buf == current_buffer)

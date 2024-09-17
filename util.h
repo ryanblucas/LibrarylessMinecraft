@@ -356,6 +356,7 @@ extern inline void matrix_sub(const matrix_t a, const matrix_t b, matrix_t res)
 /* Multiplies a with b and stores result in a. */
 extern inline void matrix_multiply(const matrix_t a, const matrix_t b, matrix_t res)
 {
+	/* https://stackoverflow.com/a/18508113 */
 	__m128 row0 = _mm_load_ps(&b[0]),
 		row1 = _mm_load_ps(&b[4]),
 		row2 = _mm_load_ps(&b[8]),
@@ -374,6 +375,21 @@ extern inline void matrix_multiply(const matrix_t a, const matrix_t b, matrix_t 
 				_mm_mul_ps(col3, row3)));
 		_mm_store_ps(&res[i * 4], row);
 	}
+}
+
+/* Creates translation matrix with vec and stores result in res */
+extern inline void matrix_translation(vector3_t vec, matrix_t res)
+{
+	memset(res, 0, sizeof(matrix_t));
+
+	INDEX_MATRIX(res, 0, 0) = 1.0F;
+	INDEX_MATRIX(res, 1, 1) = 1.0F;
+	INDEX_MATRIX(res, 2, 2) = 1.0F;
+	INDEX_MATRIX(res, 3, 3) = 1.0F;
+
+	INDEX_MATRIX(res, 3, 0) = vec.x;
+	INDEX_MATRIX(res, 3, 1) = vec.y;
+	INDEX_MATRIX(res, 3, 2) = vec.z;
 }
 
 typedef enum axis
