@@ -12,6 +12,8 @@
 
 void entity_player_init(entity_t* ent)
 {
+	camera_set_projection_properties(0.1F, 1000.0F, 90.0F);
+
 	/* Minecraft's player dimensions */
 	ent->hitbox = (aabb_t){ .max = { 0.6F, 1.8F, 0.6F } };
 	ent->hitbox = aabb_set_center(ent->hitbox, (vector3_t) { 8, 130, 8 });
@@ -19,11 +21,13 @@ void entity_player_init(entity_t* ent)
 
 void entity_player_update(entity_t* ent, float delta)
 {
+	/* TO DO: remove references to camera here, use ent's rotation. Game can modify camera */
 	pointi_t dm = window_mouse_delta();
-	current_camera.yaw += DEGREES_TO_RADIANS(dm.x);
-	current_camera.pitch -= DEGREES_TO_RADIANS(dm.y);
-	current_camera.pitch = min(current_camera.pitch, DEGREES_TO_RADIANS(89.9F));
-	current_camera.pitch = max(current_camera.pitch, DEGREES_TO_RADIANS(-89.9F));
+	float yaw = camera_yaw() + DEGREES_TO_RADIANS(dm.x),
+		pitch = camera_pitch() - DEGREES_TO_RADIANS(dm.y);
+	pitch = min(pitch, DEGREES_TO_RADIANS(89.9F));
+	pitch = max(pitch, DEGREES_TO_RADIANS(-89.9F));
+	camera_set_view_properties(yaw, pitch, vector3_add(aabb_get_center(player.hitbox), (vector3_t) { 0.0F, 1.501F - aabb_dimensions(player.hitbox).y / 2.0F, 0.0F }));
 
 	if (window_input_down(INPUT_TELEPORT_TO_SPAWN))
 	{
@@ -69,11 +73,11 @@ void entity_player_update(entity_t* ent, float delta)
 
 	if (window_input_clicked(INPUT_BREAK_BLOCK))
 	{
-		world_block_set(world_ray_cast(current_camera.pos, camera_forward(), 5.0F).block, BLOCK_AIR);
+		world_block_set(world_ray_cast(camera_position(), camera_forward(), 5.0F).block, BLOCK_AIR);
 	}
 	if (window_input_clicked(INPUT_PLACE_BLOCK))
 	{
-		block_coords_t bc = world_ray_neighbor(world_ray_cast(current_camera.pos, camera_forward(), 5.0F));
+		block_coords_t bc = world_ray_neighbor(world_ray_cast(camera_position(), camera_forward(), 5.0F));
 		if (!aabb_collides_aabb(ent->hitbox, (aabb_t) { .min = block_coords_to_vector(bc), .max = vector3_add_scalar(block_coords_to_vector(bc), 1.0F) }))
 		{
 			world_block_set(bc, BLOCK_STONE);

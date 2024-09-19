@@ -29,12 +29,12 @@ void game_destroy(void)
 void game_frame(float delta)
 {
 	world_update(delta);
-	current_camera.pos = vector3_add(aabb_get_center(player.hitbox), (vector3_t) { 0.0F, 1.501F - aabb_dimensions(player.hitbox).y / 2.0F, 0.0F });
 
 	graphics_clear(COLOR_CREATE(0x64, 0x95, 0xED));
 
 	graphics_shader_use(chunk_shader);
 	graphics_sampler_use(atlas);
+	camera_activate();
 
 	world_render(delta);
 }

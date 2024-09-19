@@ -50,7 +50,7 @@ void graphics_shader_delete(shader_t* shader);
 /* Sets current shader. If the shader has a "camera" matrix, this function will use the current camera */
 void graphics_shader_use(shader_t shader);
 /* Sets a shader's model transform uniform */
-void graphics_shader_transform_model(matrix_t model);
+void graphics_shader_matrix(const char* name, const matrix_t mat4);
 
 /*	Creates vertex buffer. Start and len can both be 0, but if 
 	they aren't they specify the starting values for the buffer. */

@@ -283,7 +283,7 @@ void world_render(float delta)
 
 		matrix_t transform;
 		matrix_translation((vector3_t) { (float)chunk_list.arr[i].x, 0.0F, (float)chunk_list.arr[i].z }, transform);
-		graphics_shader_transform_model(transform);
+		graphics_shader_matrix("model", transform);
 
 		graphics_buffer_draw(chunk_list.arr[i].opaque_buffer);
 	}

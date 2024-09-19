@@ -287,22 +287,15 @@ void graphics_shader_use(shader_t shader)
 	{
 		current_shader = shader;
 		glUseProgram(current_shader->id);
+		ASSERT_NO_ERROR();
 	}
-	struct uniform_stats* curr = graphics_shader_get_uniform("camera");
-	if (curr)
-	{
-		static matrix_t cam;
-		camera_get_view_projection(cam);
-		glUniformMatrix4fv(curr->location, 1, GL_FALSE, cam);
-	}
-	ASSERT_NO_ERROR();
 }
 
-void graphics_shader_transform_model(matrix_t model)
+void graphics_shader_matrix(const char* name, const matrix_t mat4)
 {
-	struct uniform_stats* curr = graphics_shader_get_uniform("model");
-	mc_panic_if(!curr, "shader missing a uniform mat4 \"model\"");
-	glUniformMatrix4fv(curr->location, 1, GL_FALSE, model);
+	struct uniform_stats* curr = graphics_shader_get_uniform(name);
+	mc_panic_if(!curr || curr->type != GL_FLOAT_MAT4, "shader missing a uniform mat4");
+	glUniformMatrix4fv(curr->location, 1, GL_FALSE, mat4);
 	ASSERT_NO_ERROR();
 }
 
@@ -400,7 +393,7 @@ static inline int graphics_debug_add_primitive(int type, int len)
 
 	int res = debug_buffer.size + debug_buffer.start;
 	primitives[empty_prim_i].type = type;
-	primitives[empty_prim_i].timestamp = window_time();
+	primitives[empty_prim_i].timestamp = (float)window_time();
 	debug_buffer.size += len;
 	return res;
 }
