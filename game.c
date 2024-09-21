@@ -9,6 +9,8 @@
 #include "util.h"
 #include "window.h"
 
+#define TICK_TIME (1.0F / 20)
+
 static shader_t chunk_shader;
 static sampler_t atlas;
 
@@ -28,7 +30,20 @@ void game_destroy(void)
 
 void game_frame(float delta)
 {
-	world_update(delta);
+	static float elapsed = 0.0F;
+	elapsed += delta;
+
+	vector3_t curr_pos = aabb_get_center(player.hitbox);
+	vector3_t interp_pos = vector3_add(player.prev_position, vector3_mul_scalar(vector3_sub(curr_pos, player.prev_position), elapsed / TICK_TIME));
+	camera_update(vector3_add(interp_pos, (vector3_t) { 0.0F, ENTITY_PLAYER_CAMERA_OFFSET - aabb_dimensions(player.hitbox).y / 2.0F, 0.0F }));
+
+	if (elapsed > TICK_TIME)
+	{
+		window_input_update();
+		player.rotation = (vector3_t){ camera_yaw(), camera_pitch(), 0.0F };
+		world_update(elapsed);
+		elapsed -= TICK_TIME;
+	}
 
 	graphics_clear(COLOR_CREATE(0x64, 0x95, 0xED));
 

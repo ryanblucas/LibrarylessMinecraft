@@ -6,9 +6,11 @@
 
 #include "util.h"
 
-#define ENTITY_PLAYER_SPEED			1.0F
-#define ENTITY_PLAYER_SNEAK_SPEED	0.5F
-#define ENTITY_DRAG_CONSTANT		0.9F
+#define ENTITY_PLAYER_SPEED			100.0F
+#define ENTITY_PLAYER_SNEAK_SPEED	50.0F
+#define ENTITY_PLAYER_CAMERA_OFFSET	1.501F
+
+#define ENTITY_DRAG_CONSTANT		10.0F
 #define ENTITY_GRAVITY_CONSTANT		2.5F
 
 typedef enum collision_face
@@ -26,6 +28,8 @@ typedef struct entity
 	vector3_t rotation, velocity;
 	aabb_t hitbox;
 	bool grounded;
+
+	vector3_t prev_position;
 } entity_t;
 
 /* Initializes an entity struct to be a player one. */

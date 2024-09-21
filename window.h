@@ -45,6 +45,8 @@ typedef enum input
 	INPUT_COUNT
 } input_t;
 
+/* Updates input state */
+void window_input_update(void);
 /* Is the key currently pressed? */
 bool window_input_down(input_t input);
 /* Is the key clicked? Note: This is true when the frame before has this down and this frame has it up. */

@@ -79,8 +79,17 @@ vector3_t camera_up(void)
 	return vector3_normalize(vector3_cross(camera_forward(), camera_right()));
 }
 
-/* Uses camera in current graphics shader */
 void camera_activate(void)
 {
 	graphics_shader_matrix("camera", view_projection);
+}
+
+void camera_update(vector3_t pos)
+{
+	pointi_t dm = window_mouse_delta();
+	float yaw = camera_yaw() + DEGREES_TO_RADIANS(dm.x),
+		pitch = camera_pitch() - DEGREES_TO_RADIANS(dm.y);
+	pitch = min(pitch, DEGREES_TO_RADIANS(89.9F));
+	pitch = max(pitch, DEGREES_TO_RADIANS(-89.9F));
+	camera_set_view_properties(yaw, pitch, pos);
 }

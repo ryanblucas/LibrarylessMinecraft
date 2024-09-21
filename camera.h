@@ -28,3 +28,5 @@ vector3_t camera_up(void);
 
 /* Uses camera in current graphics shader */
 void camera_activate(void);
+/* Updates camera */
+void camera_update(vector3_t pos);

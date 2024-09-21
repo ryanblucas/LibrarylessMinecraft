@@ -12,8 +12,6 @@
 
 void entity_player_init(entity_t* ent)
 {
-	camera_set_projection_properties(0.1F, 1000.0F, 90.0F);
-
 	/* Minecraft's player dimensions */
 	ent->hitbox = (aabb_t){ .max = { 0.6F, 1.8F, 0.6F } };
 	ent->hitbox = aabb_set_center(ent->hitbox, (vector3_t) { 8, 130, 8 });
@@ -21,13 +19,7 @@ void entity_player_init(entity_t* ent)
 
 void entity_player_update(entity_t* ent, float delta)
 {
-	/* TO DO: remove references to camera here, use ent's rotation. Game can modify camera */
-	pointi_t dm = window_mouse_delta();
-	float yaw = camera_yaw() + DEGREES_TO_RADIANS(dm.x),
-		pitch = camera_pitch() - DEGREES_TO_RADIANS(dm.y);
-	pitch = min(pitch, DEGREES_TO_RADIANS(89.9F));
-	pitch = max(pitch, DEGREES_TO_RADIANS(-89.9F));
-	camera_set_view_properties(yaw, pitch, vector3_add(aabb_get_center(player.hitbox), (vector3_t) { 0.0F, 1.501F - aabb_dimensions(player.hitbox).y / 2.0F, 0.0F }));
+	ent->prev_position = aabb_get_center(ent->hitbox);
 
 	if (window_input_down(INPUT_TELEPORT_TO_SPAWN))
 	{
@@ -61,8 +53,9 @@ void entity_player_update(entity_t* ent, float delta)
 	}
 	desired = vector3_normalize(desired);
 
-	float speed = window_input_down(INPUT_SNEAK) ? ENTITY_PLAYER_SNEAK_SPEED : ENTITY_PLAYER_SPEED;
-	ent->velocity = vector3_mul(vector3_add(ent->velocity, vector3_mul_scalar(desired, speed)), (vector3_t) { ENTITY_DRAG_CONSTANT, 1.0F, ENTITY_DRAG_CONSTANT });
+	float speed = window_input_down(INPUT_SNEAK) ? ENTITY_PLAYER_SNEAK_SPEED : ENTITY_PLAYER_SPEED,
+		friction = 1.0F / (1 + delta * ENTITY_DRAG_CONSTANT);
+	ent->velocity = vector3_mul(vector3_add(ent->velocity, vector3_mul_scalar(desired, speed * delta)), (vector3_t) { friction, 1.0F, friction });
 
 	if (window_input_clicked(INPUT_JUMP) && ent->grounded)
 	{

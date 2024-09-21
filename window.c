@@ -6,6 +6,7 @@
 #include "window.h"
 
 #include <assert.h>
+#include "camera.h"
 #include "game.h"
 #include "graphics.h"
 #include <stdbool.h>
@@ -128,6 +129,7 @@ static LRESULT window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		{
 			glViewport(0, 0, LOWORD(lparam), HIWORD(lparam));
 			dims = (pointi_t){ LOWORD(lparam), HIWORD(lparam) };
+			camera_set_projection_properties(0.1F, 1000.0F, 90.0F);
 		}
 		return 0;
 
@@ -240,8 +242,13 @@ pointi_t window_mouse_position(void)
 static bool state_array[INPUT_COUNT * 2];
 static bool* state = state_array, *prev_state = state_array + INPUT_COUNT;
 
-static void window_input_update(void)
+void window_input_update(void)
 {
+	if (GetForegroundWindow() != window_handle)
+	{
+		return;
+	}
+
 	bool* temp = prev_state;
 	prev_state = state;
 	state = temp;
@@ -313,7 +320,6 @@ int main()
 		if (GetForegroundWindow() == window_handle)
 		{
 			window_mouse_update();
-			window_input_update();
 		}
 
 		double delta = curr - prev;

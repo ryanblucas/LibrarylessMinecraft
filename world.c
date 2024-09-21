@@ -113,7 +113,7 @@ struct ray_state
 
 void world_raycast_loop(block_coords_t i, void* user)
 {
-	if (world_block_get(i) == BLOCK_AIR)
+	if (!IS_SOLID(world_block_get(i)))
 	{
 		return;
 	}
@@ -222,7 +222,7 @@ int world_region_aabb(block_coords_t _min, block_coords_t _max, aabb_t* arr, siz
 		{
 			for (curr.x = _min.x; curr.x <= _max.x; curr.x++)
 			{
-				if (curr_i >= arr_len || world_block_get(curr) == BLOCK_AIR)
+				if (curr_i >= arr_len || !IS_SOLID(world_block_get(curr)))
 				{
 					continue;
 				}
