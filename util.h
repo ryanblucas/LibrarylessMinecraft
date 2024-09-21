@@ -433,7 +433,7 @@ extern inline aabb_t aabb_translate(aabb_t aabb, vector3_t pos)
 
 extern inline aabb_t aabb_translate_axis(aabb_t aabb, axis_t axis_i, float value)
 {
-	vector3_uarray_t axis = { .vec = {0} };
+	vector3_uarray_t axis = { 0 };
 	axis.raw[axis_i] = value;
 	return aabb_translate(aabb, axis.vec);
 }
@@ -445,18 +445,18 @@ extern inline vector3_t aabb_dimensions(aabb_t aabb)
 
 extern inline vector3_t aabb_collision_depth(aabb_t a, aabb_t b)
 {
-	vector3_uarray_t a_c = { .vec = aabb_get_center(a) },
-		b_c = { .vec = aabb_get_center(b) };
+	vector3_uarray_t a_c = { aabb_get_center(a) },
+		b_c = { aabb_get_center(b) };
 	vector3_uarray_t res = { 0 };
 	for (int i = 0; i < 3; i++)
 	{
 		if (a_c.raw[i] < b_c.raw[i])
 		{
-			res.raw[i] = (vector3_uarray_t){ .vec = a.max }.raw[i] - (vector3_uarray_t) { .vec = b.min }.raw[i];
+			res.raw[i] = (vector3_uarray_t){ a.max }.raw[i] - (vector3_uarray_t) { b.min }.raw[i];
 		}
 		else
 		{
-			res.raw[i] = (vector3_uarray_t){ .vec = b.max }.raw[i] - (vector3_uarray_t) { .vec = a.min }.raw[i];
+			res.raw[i] = (vector3_uarray_t){ b.max }.raw[i] - (vector3_uarray_t) { a.min }.raw[i];
 		}
 	}
 	return res.vec;

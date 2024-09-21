@@ -61,7 +61,7 @@ void entity_player_update(entity_t* ent, float delta)
 	}
 	desired = vector3_normalize(desired);
 
-	float speed = window_input_down(INPUT_SPRINT) ? ENTITY_PLAYER_SPRINT_SPEED : ENTITY_PLAYER_SPEED;
+	float speed = window_input_down(INPUT_SNEAK) ? ENTITY_PLAYER_SNEAK_SPEED : ENTITY_PLAYER_SPEED;
 	ent->velocity = vector3_mul(vector3_add(ent->velocity, vector3_mul_scalar(desired, speed)), (vector3_t) { ENTITY_DRAG_CONSTANT, 1.0F, ENTITY_DRAG_CONSTANT });
 
 	if (window_input_clicked(INPUT_JUMP) && ent->grounded)
@@ -89,7 +89,6 @@ void entity_player_update(entity_t* ent, float delta)
 
 collision_face_t entity_move(entity_t* ent, vector3_t addend)
 {
-	graphics_debug_clear();
 	aabb_t arr[0x100];
 	int len = world_region_aabb(
 		/* It is crucial that there is a 2x2x2 slack to the hitbox. */

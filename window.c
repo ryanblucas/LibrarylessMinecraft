@@ -252,7 +252,7 @@ static void window_input_update(void)
 	state[INPUT_BACKWARD] =		GetAsyncKeyState('S');
 	state[INPUT_LEFT] =			GetAsyncKeyState('A');
 	state[INPUT_RIGHT] =		GetAsyncKeyState('D');
-	state[INPUT_SPRINT] =		GetAsyncKeyState(VK_LSHIFT);
+	state[INPUT_SNEAK] =		GetAsyncKeyState(VK_LSHIFT);
 	state[INPUT_JUMP] =			GetAsyncKeyState(VK_SPACE);
 
 	state[INPUT_TELEPORT_TO_SPAWN] = holding_ctrl && GetAsyncKeyState('T');
