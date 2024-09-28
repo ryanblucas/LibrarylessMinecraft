@@ -47,7 +47,7 @@ void graphics_sampler_use(sampler_t handle);
 shader_t graphics_shader_load(const char* vertex_path, const char* fragment_path);
 /* Deletes the shader object and sets the pointer to NULL */
 void graphics_shader_delete(shader_t* shader);
-/* Sets current shader. If the shader has a "camera" matrix, this function will use the current camera */
+/* Sets current shader. */
 void graphics_shader_use(shader_t shader);
 /* Sets a shader's model transform uniform */
 void graphics_shader_matrix(const char* name, const matrix_t mat4);

@@ -64,6 +64,16 @@ void entity_player_update(entity_t* ent, float delta)
 
 	entity_gravity_then_move(ent, delta);
 
+	static block_type_t to_place;
+	if (window_input_clicked(INPUT_CYCLE_BLOCK_FORWARD))
+	{
+		to_place = (to_place + 1) % (BLOCK_COUNT - 1);
+	}
+	else if (window_input_clicked(INPUT_CYCLE_BLOCK_BACKWARD))
+	{
+		to_place = (BLOCK_COUNT + to_place - 2) % (BLOCK_COUNT - 1);
+	}
+
 	if (window_input_clicked(INPUT_BREAK_BLOCK))
 	{
 		world_block_set(world_ray_cast(camera_position(), camera_forward(), 5.0F).block, BLOCK_AIR);
@@ -73,7 +83,7 @@ void entity_player_update(entity_t* ent, float delta)
 		block_coords_t bc = world_ray_neighbor(world_ray_cast(camera_position(), camera_forward(), 5.0F));
 		if (!aabb_collides_aabb(ent->hitbox, (aabb_t) { .min = block_coords_to_vector(bc), .max = vector3_add_scalar(block_coords_to_vector(bc), 1.0F) }))
 		{
-			world_block_set(bc, BLOCK_STONE);
+			world_block_set(bc, to_place + 1);
 		}
 	}
 }

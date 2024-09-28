@@ -4,10 +4,36 @@
 
 #pragma once
 
+/* TO DO: Split some of this stuff into different files! */
+
+#include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+
+/* Implementation of an array list: an array that once its capacity--reserved--is reached, it reallocates and doubles its capacity. */
+typedef struct array_list* array_list_t;
+
+#define MC_LIST_CAST_GET(list, index, type) (assert(sizeof(type) == mc_list_element_size(list) && (index) >= 0 && (index) < mc_list_count(list)), (type*)mc_list_array(list) + (index))
+
+/* Get amount of elements in list */
+int mc_list_count(const array_list_t list);
+/* Get size of each element in list */
+size_t mc_list_element_size(const array_list_t list);
+/* Get raw array of elements */
+void* mc_list_array(array_list_t list);
+
+/* Creates an array list with name and size of each element. */
+array_list_t mc_list_create(size_t element_size);
+/* Destroys list pointed at by parameter, setting parameter to NULL afterwards */
+void mc_list_destroy(array_list_t* list);
+/* Adds an element to the array list. You may reserve an element by passing NULL to pelement and write to it with the pointer from mc_list_array. Returns index that was added */
+int mc_list_add(array_list_t list, int index, const void* pelement, size_t element_size);
+/* Removes an element from the array list and writes to out if not NULL. Returns index that was deleted */
+int mc_list_remove(array_list_t list, int index, void* out, size_t element_size);
+/* Splices an array list */
+void mc_list_splice(array_list_t list, int start, int count);
 
 /* Cleans game state and crashes. *ONLY CALL IN EMERGENCY* */
 extern inline void mc_panic_if(bool condition, const char* reason)
@@ -80,8 +106,9 @@ extern inline uint8_t* mc_read_file_binary(const char* path, long* size)
 typedef uintmax_t hash_t;
 
 /* Hashes buffer. If buf_len < 0, buf is assumed to be NUL-terminated. */
-extern inline hash_t mc_hash(const uint8_t* buf, int buf_len)
+extern inline hash_t mc_hash(const void* _buf, int buf_len)
 {
+	const uint8_t* buf = (uint8_t*)_buf;
 	hash_t result = 5381;
 	for (int i = 0; i < buf_len || (buf_len < 0 && buf[i]); i++)
 	{

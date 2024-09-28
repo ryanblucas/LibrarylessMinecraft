@@ -54,6 +54,11 @@ extern inline vector3_t block_coords_to_vector(block_coords_t bc)
 	return (vector3_t) { (float)bc.x, (float)bc.y, (float)bc.z };
 }
 
+extern inline bool is_block_coords_equal(block_coords_t a, block_coords_t b)
+{
+	return a.x == b.x && a.y == b.y && a.z == b.z;
+}
+
 void world_init(void);
 void world_destroy(void);
 
@@ -81,15 +86,38 @@ void world_render(float delta);
 
 #include "graphics.h"
 
-#define CHUNK_INDEX_OF(x, y, z)	((y) * CHUNK_FLOOR_BLOCK_COUNT + (z) * (CHUNK_WX) + (x))
+struct liquid
+{
+	block_coords_t position, origin;
+	vector3_t push;
+	int strength;
+};
+
+#define OPAQUE_BIT	1
+#define LIQUID_BIT	2
+
+struct chunk
+{
+	int x, z; /* The x and z coordinates in block space. As in, these numbers are multiples of 16 (chunk width and depth.) */
+	int dirty_mask;
+	vertex_buffer_t opaque_buffer, liquid_buffer;
+	block_type_t arr[CHUNK_BLOCK_COUNT];
+	array_list_t flowing_liquid; /* struct liquid array_list */
+};
+
+extern array_list_t chunk_list;		/* struct chunk array_list */
+
+#define CHUNK_INDEX_OF(x, y, z)	((y) * CHUNK_FLOOR_BLOCK_COUNT + (z) * CHUNK_WX + (x))
 #define CHUNK_AT(c, x, y, z)	((c)[CHUNK_INDEX_OF(x, y, z)])
 #define CHUNK_X(mask)			((mask) % CHUNK_WX)
 #define CHUNK_Y(mask)			((mask) / CHUNK_FLOOR_BLOCK_COUNT)
 #define CHUNK_Z(mask)			((mask % CHUNK_FLOOR_BLOCK_COUNT) / CHUNK_WX)
 #define CHUNK_FX(mask)			(float)((mask) % CHUNK_WX)
 #define CHUNK_FY(mask)			(float)((mask) / CHUNK_FLOOR_BLOCK_COUNT)
-#define CHUNK_FZ(mask)			(float)((mask % CHUNK_FLOOR_BLOCK_COUNT) / CHUNK_WX)
+#define CHUNK_FZ(mask)			(float)(((mask) % CHUNK_FLOOR_BLOCK_COUNT) / CHUNK_WX)
 
-void world_chunk_mesh(vertex_buffer_t out, const block_type_t chunk[CHUNK_BLOCK_COUNT]);
+struct chunk* world_chunk_create(int x_o, int z_o);
+struct chunk* world_chunk_get(int x, int z);
+void world_chunk_clean_mesh(int index);
 
 #endif

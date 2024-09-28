@@ -9,99 +9,79 @@
 #include "graphics.h"
 
 #define ROUND_DOWN(c, m) (((c) < 0 ? -((-(c) - 1 + (m)) / (m)) : (c) / (m)) * (m))
+#define BUCKET_COUNT 32
 
-struct chunk
-{
-	int x, z; /* The x and z coordinates in block space. As in, these numbers are multiples of 16 (chunk width and depth.) */
-	bool is_dirty;
-	vertex_buffer_t opaque_buffer;
-
-	/* Since most of this is air anyways, this could set a variable height to save memory, TO DO */
-	block_type_t arr[CHUNK_BLOCK_COUNT];
-};
-
-static struct chunk_list
-{
-	int reserved, count;
-	struct chunk* arr;
-} chunk_list;
+array_list_t chunk_list;
+static array_list_t update_list;
+static int ticks;
 
 entity_t player;
 
-static inline struct chunk* world_chunk_get(int x, int z)
+struct chunk* world_chunk_create(int x_o, int z_o)
 {
-	x = ROUND_DOWN(x, CHUNK_WX);
-	z = ROUND_DOWN(z, CHUNK_WZ);
-	for (int i = 0; i < chunk_list.count; i++)
-	{
-		if (chunk_list.arr[i].x == x && chunk_list.arr[i].z == z)
-		{
-			return &chunk_list.arr[i];
-		}
-	}
-	return NULL;
-}
+	int res = mc_list_add(chunk_list, mc_list_count(chunk_list), NULL, sizeof(struct chunk));
+	struct chunk* next = MC_LIST_CAST_GET(chunk_list, res, struct chunk);
 
-static struct chunk* world_chunk_create(int x_o, int z_o)
-{
-	struct chunk* next = world_chunk_get(x_o, z_o);
-	if (world_chunk_get(x_o, z_o) != NULL)
-	{
-		return next;
-	}
-
-	int next_pos = chunk_list.count++;
-	if (chunk_list.count >= chunk_list.reserved)
-	{
-		int new_reserved = chunk_list.reserved * 2;
-		struct chunk* new_arr = mc_malloc(sizeof * chunk_list.arr * new_reserved);
-		memcpy(new_arr, chunk_list.arr, sizeof * chunk_list.arr * chunk_list.reserved);
-		free(chunk_list.arr);
-		chunk_list.arr = new_arr;
-		chunk_list.reserved = new_reserved;
-	}
-	next = &chunk_list.arr[next_pos];
 	next->x = ROUND_DOWN(x_o, CHUNK_WX);
 	next->z = ROUND_DOWN(z_o, CHUNK_WZ);
+	next->flowing_liquid = mc_list_create(sizeof(struct liquid));
+
 	for (int i = 0; i < CHUNK_FLOOR_BLOCK_COUNT; i++)
 	{
 		int x = CHUNK_X(i), z = CHUNK_Z(i);
 		for (int j = CHUNK_WY - 1; j >= 129; j--)
 		{
-			world_block_set((block_coords_t) { next->x + x, j, next->z + z }, BLOCK_AIR);
+			next->arr[CHUNK_INDEX_OF(x, j, z)] = BLOCK_AIR;
 		}
-		world_block_set((block_coords_t) { next->x + x, 128, next->z + z }, BLOCK_GRASS);
+		next->arr[CHUNK_INDEX_OF(x, 128, z)] = BLOCK_GRASS;/*
 		for (int j = 127; j >= 125; j--)
 		{
-			world_block_set((block_coords_t) { next->x + x, j, next->z + z }, BLOCK_DIRT);
+			next->arr[CHUNK_INDEX_OF(x, j, z)] = BLOCK_DIRT;
 		}
 		for (int j = 124; j >= 0; j--)
 		{
-			world_block_set((block_coords_t) { next->x + x, j, next->z + z }, BLOCK_STONE);
+			next->arr[CHUNK_INDEX_OF(x, j, z)] = BLOCK_STONE;
+		}*/
+	}
+	next->dirty_mask = OPAQUE_BIT;
+	next->opaque_buffer = graphics_buffer_create(NULL, 0);
+	next->liquid_buffer = graphics_buffer_create(NULL, 0);
+	return next;
+}
+
+struct chunk* world_chunk_get(int x, int z)
+{
+	x = ROUND_DOWN(x, CHUNK_WX);
+	z = ROUND_DOWN(z, CHUNK_WZ);
+	struct chunk* list = mc_list_array(chunk_list);
+	for (int i = 0; i < mc_list_count(chunk_list); i++)
+	{
+		if (list[i].x == x && list[i].z == z)
+		{
+			return &list[i];
 		}
 	}
-	next->opaque_buffer = graphics_buffer_create(NULL, 0);
-	return next;
+	return NULL;
 }
 
 void world_init(void)
 {
-	entity_player_init(&player);
+	chunk_list = mc_list_create(sizeof(struct chunk));
+	update_list = mc_list_create(sizeof(block_coords_t));
 
-	chunk_list.reserved = 32 * 32;
-	chunk_list.arr = mc_malloc(sizeof * chunk_list.arr * chunk_list.reserved);
 	world_chunk_create(0, 0);
+	entity_player_init(&player);
 }
 
 void world_destroy(void)
 {
-	for (int i = 0; i < chunk_list.count; i++)
+	for (int i = 0; i < mc_list_count(chunk_list); i++)
 	{
-		graphics_buffer_delete(&chunk_list.arr[i].opaque_buffer);
+		graphics_buffer_delete(&MC_LIST_CAST_GET(chunk_list, i, struct chunk)->opaque_buffer);
+		graphics_buffer_delete(&MC_LIST_CAST_GET(chunk_list, i, struct chunk)->liquid_buffer);
 	}
-	free(chunk_list.arr);
-	chunk_list.arr = NULL;
-	chunk_list.reserved = 0;
+	mc_list_destroy(chunk_list);
+	mc_list_destroy(&update_list);
 }
 
 struct ray_state
@@ -235,6 +215,86 @@ int world_region_aabb(block_coords_t _min, block_coords_t _max, aabb_t* arr, siz
 	return curr_i;
 }
 
+static void world_block_update(block_coords_t coords)
+{
+	if (IS_INVALID_BLOCK_COORDS(coords) || !world_chunk_get(coords.x, coords.z))
+	{
+		return;
+	}
+
+	graphics_debug_set_cube(block_coords_to_vector(coords), (vector3_t) { 1, 1, 1 });
+	mc_list_add(update_list, mc_list_count(update_list), &coords, sizeof coords);
+}
+
+static struct liquid* world_liquid_get(block_coords_t coords)
+{
+	struct chunk* chunk = world_chunk_get(coords.x, coords.z);
+	if (!chunk)
+	{
+		return NULL;
+	}
+	for (int i = 0; i < mc_list_count(chunk->flowing_liquid); i++)
+	{
+		struct liquid* curr = MC_LIST_CAST_GET(chunk->flowing_liquid, i, struct liquid);
+		if (is_block_coords_equal(coords, curr->position))
+		{
+			return curr;
+		}
+	}
+	return NULL;
+}
+
+static void world_liquid_add(block_coords_t coords, block_coords_t origin, int strength)
+{
+	struct chunk* chunk = world_chunk_get(coords.x, coords.z);
+	struct liquid* existing = world_liquid_get(coords);
+	if (!chunk || strength <= 0 || IS_SOLID(world_block_get(coords)) || existing)
+	{
+		return;
+	}
+	struct liquid to_add =
+	{
+		.origin = origin,
+		.position = coords,
+		.strength = strength,
+	};
+	mc_list_add(chunk->flowing_liquid, mc_list_count(chunk->flowing_liquid), &to_add, sizeof to_add);
+	world_block_update(coords);
+	chunk->dirty_mask |= LIQUID_BIT;
+}
+
+static void world_block_tick(void)
+{
+	if (ticks % 20 != 0)
+	{
+		return;
+	}
+
+	int old_count = mc_list_count(update_list);
+	for (int i = old_count - 1; i >= 0; i--)
+	{
+		block_coords_t coords = *MC_LIST_CAST_GET(update_list, i, block_coords_t);
+		bool is_source = world_block_get(coords) == BLOCK_WATER;
+		struct liquid* pflow = world_liquid_get(coords);
+		if (!is_source && !pflow)
+		{
+			continue;
+		}
+		else if (is_source && !pflow)
+		{
+			world_liquid_add(coords, coords, 8);
+			continue;
+		}
+
+		world_liquid_add((block_coords_t) { coords.x - 1, coords.y, coords.z }, pflow->origin, pflow->strength - 1);
+		world_liquid_add((block_coords_t) { coords.x + 1, coords.y, coords.z }, pflow->origin, pflow->strength - 1);
+		world_liquid_add((block_coords_t) { coords.x, coords.y - 1, coords.z }, pflow->origin, pflow->strength - 1);
+		world_liquid_add((block_coords_t) { coords.x, coords.y, coords.z - 1 }, pflow->origin, pflow->strength - 1);
+		world_liquid_add((block_coords_t) { coords.x, coords.y, coords.z + 1 }, pflow->origin, pflow->strength - 1);
+	}
+	mc_list_splice(update_list, 0, old_count);
+}
+
 block_type_t world_block_get(block_coords_t coords)
 {
 	struct chunk* chunk = world_chunk_get(coords.x, coords.z);
@@ -245,7 +305,7 @@ block_type_t world_block_get(block_coords_t coords)
 
 	coords.x -= chunk->x;
 	coords.z -= chunk->z;
-	return chunk->arr[CHUNK_INDEX_OF(coords.x, coords.y, coords.z)];
+	return CHUNK_AT(chunk->arr, coords.x, coords.y, coords.z);
 }
 
 void world_block_set(block_coords_t coords, block_type_t type)
@@ -254,37 +314,44 @@ void world_block_set(block_coords_t coords, block_type_t type)
 	{
 		return;
 	}
+
 	struct chunk* chunk = world_chunk_get(coords.x, coords.z);
 	if (!chunk)
 	{
 		chunk = world_chunk_create(coords.x, coords.z);
 	}
 
-	coords.x -= chunk->x;
-	coords.z -= chunk->z;
-	chunk->arr[CHUNK_INDEX_OF(coords.x, coords.y, coords.z)] = type;
-	chunk->is_dirty = true;
+	chunk->arr[CHUNK_INDEX_OF(coords.x - chunk->x, coords.y, coords.z - chunk->z)] = type;
+	chunk->dirty_mask |= OPAQUE_BIT;
+
+	world_block_update((block_coords_t) { coords.x, coords.y, coords.z });
+	world_block_update((block_coords_t) { coords.x - 1, coords.y, coords.z });
+	world_block_update((block_coords_t) { coords.x + 1, coords.y, coords.z });
+	world_block_update((block_coords_t) { coords.x, coords.y - 1, coords.z });
+	world_block_update((block_coords_t) { coords.x, coords.y + 1, coords.z });
+	world_block_update((block_coords_t) { coords.x, coords.y, coords.z - 1 });
+	world_block_update((block_coords_t) { coords.x, coords.y, coords.z + 1 });
 }
 
 void world_update(float delta)
 {
+	world_block_tick();
 	entity_player_update(&player, delta);
+	ticks++;
 }
 
 void world_render(float delta)
 {
-	for (int i = 0; i < chunk_list.count; i++)
+	for (int i = 0; i < mc_list_count(chunk_list); i++)
 	{
-		if (chunk_list.arr[i].is_dirty)
-		{
-			world_chunk_mesh(chunk_list.arr[i].opaque_buffer, chunk_list.arr[i].arr);
-			chunk_list.arr[i].is_dirty = false;
-		}
+		struct chunk* chunk = MC_LIST_CAST_GET(chunk_list, i, struct chunk);
+		world_chunk_clean_mesh(i);
 
 		matrix_t transform;
-		matrix_translation((vector3_t) { (float)chunk_list.arr[i].x, 0.0F, (float)chunk_list.arr[i].z }, transform);
+		matrix_translation((vector3_t) { (float)chunk->x, 0.0F, (float)chunk->z }, transform);
 		graphics_shader_matrix("model", transform);
 
-		graphics_buffer_draw(chunk_list.arr[i].opaque_buffer);
+		graphics_buffer_draw(chunk->opaque_buffer);
+		graphics_buffer_draw(chunk->liquid_buffer);
 	}
 }

@@ -460,6 +460,7 @@ void graphics_debug_draw(void)
 
 	graphics_buffer_bind(&debug_buffer);
 	graphics_shader_use(line_shader);
+	camera_activate();
 	struct uniform_stats* us = graphics_shader_get_uniform("u_color");
 	mc_panic_if(!us || us->type != GL_INT, "invalid debug shader");
 	glUniform1i(us->location, COLOR_CREATE(255, 255, 255));

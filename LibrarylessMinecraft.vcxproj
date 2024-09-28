@@ -132,6 +132,7 @@
     <ClCompile Include="entity.c" />
     <ClCompile Include="game.c" />
     <ClCompile Include="graphics.c" />
+    <ClCompile Include="util.c" />
     <ClCompile Include="window.c" />
     <ClCompile Include="world.c" />
     <ClCompile Include="world_mesh.c" />
