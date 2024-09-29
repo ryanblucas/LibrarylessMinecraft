@@ -13,6 +13,8 @@
 #define CHUNK_FLOOR_BLOCK_COUNT	(CHUNK_WX * CHUNK_WZ)
 #define CHUNK_BLOCK_COUNT		(CHUNK_WX * CHUNK_WY * CHUNK_WZ)
 
+#define WATER_STRENGTH 7
+
 #define IS_INVALID_BLOCK_COORDS(bc) ((bc).y < 0 || (bc).y >= CHUNK_WY)
 #define IS_SOLID(type) ((type) != BLOCK_AIR && (type) != BLOCK_WATER)
 

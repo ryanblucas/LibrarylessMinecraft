@@ -33,15 +33,8 @@ struct chunk* world_chunk_create(int x_o, int z_o)
 		{
 			next->arr[CHUNK_INDEX_OF(x, j, z)] = BLOCK_AIR;
 		}
-		next->arr[CHUNK_INDEX_OF(x, 128, z)] = BLOCK_GRASS;/*
-		for (int j = 127; j >= 125; j--)
-		{
-			next->arr[CHUNK_INDEX_OF(x, j, z)] = BLOCK_DIRT;
-		}
-		for (int j = 124; j >= 0; j--)
-		{
-			next->arr[CHUNK_INDEX_OF(x, j, z)] = BLOCK_STONE;
-		}*/
+		next->arr[CHUNK_INDEX_OF(x, 128, z)] = BLOCK_GRASS;
+		next->arr[CHUNK_INDEX_OF(x, 120, z)] = BLOCK_GRASS;
 	}
 	next->dirty_mask = OPAQUE_BIT;
 	next->opaque_buffer = graphics_buffer_create(NULL, 0);
@@ -80,7 +73,7 @@ void world_destroy(void)
 		graphics_buffer_delete(&MC_LIST_CAST_GET(chunk_list, i, struct chunk)->opaque_buffer);
 		graphics_buffer_delete(&MC_LIST_CAST_GET(chunk_list, i, struct chunk)->liquid_buffer);
 	}
-	mc_list_destroy(chunk_list);
+	mc_list_destroy(&chunk_list);
 	mc_list_destroy(&update_list);
 }
 
@@ -248,9 +241,14 @@ static void world_liquid_add(block_coords_t coords, block_coords_t origin, int s
 {
 	struct chunk* chunk = world_chunk_get(coords.x, coords.z);
 	struct liquid* existing = world_liquid_get(coords);
-	if (!chunk || strength <= 0 || IS_SOLID(world_block_get(coords)) || existing)
+	if (!chunk || strength <= 0 || IS_SOLID(world_block_get(coords)) || (existing && is_block_coords_equal(existing->origin, origin)))
 	{
 		return;
+	}
+	if (existing)
+	{
+		strength = (strength + existing->strength) / 2;
+		existing->strength = strength;
 	}
 	struct liquid to_add =
 	{
@@ -263,9 +261,27 @@ static void world_liquid_add(block_coords_t coords, block_coords_t origin, int s
 	chunk->dirty_mask |= LIQUID_BIT;
 }
 
+static void world_liquid_remove(block_coords_t coords)
+{
+	struct chunk* chunk = world_chunk_get(coords.x, coords.z);
+	if (!chunk)
+	{
+		return;
+	}
+	for (int i = 0; i < mc_list_count(chunk->flowing_liquid); i++)
+	{
+		struct liquid* curr = MC_LIST_CAST_GET(chunk->flowing_liquid, i, struct liquid);
+		if (is_block_coords_equal(coords, curr->position))
+		{
+			mc_list_remove(chunk->flowing_liquid, i, NULL, 0);
+			return;
+		}
+	}
+}
+
 static void world_block_tick(void)
 {
-	if (ticks % 20 != 0)
+	if (ticks % 5 != 0)
 	{
 		return;
 	}
@@ -282,15 +298,19 @@ static void world_block_tick(void)
 		}
 		else if (is_source && !pflow)
 		{
-			world_liquid_add(coords, coords, 8);
+			world_liquid_add(coords, coords, WATER_STRENGTH);
 			continue;
 		}
 
-		world_liquid_add((block_coords_t) { coords.x - 1, coords.y, coords.z }, pflow->origin, pflow->strength - 1);
-		world_liquid_add((block_coords_t) { coords.x + 1, coords.y, coords.z }, pflow->origin, pflow->strength - 1);
-		world_liquid_add((block_coords_t) { coords.x, coords.y - 1, coords.z }, pflow->origin, pflow->strength - 1);
-		world_liquid_add((block_coords_t) { coords.x, coords.y, coords.z - 1 }, pflow->origin, pflow->strength - 1);
-		world_liquid_add((block_coords_t) { coords.x, coords.y, coords.z + 1 }, pflow->origin, pflow->strength - 1);
+		if (world_block_get((block_coords_t) { coords.x, coords.y - 1, coords.z }) != BLOCK_AIR)
+		{
+			world_liquid_add((block_coords_t) { coords.x - 1, coords.y, coords.z }, pflow->origin, pflow->strength - 1);
+			world_liquid_add((block_coords_t) { coords.x + 1, coords.y, coords.z }, pflow->origin, pflow->strength - 1);
+			world_liquid_add((block_coords_t) { coords.x, coords.y, coords.z - 1 }, pflow->origin, pflow->strength - 1);
+			world_liquid_add((block_coords_t) { coords.x, coords.y, coords.z + 1 }, pflow->origin, pflow->strength - 1);
+			continue;
+		}
+		world_liquid_add((block_coords_t) { coords.x, coords.y - 1, coords.z }, pflow->origin, WATER_STRENGTH);
 	}
 	mc_list_splice(update_list, 0, old_count);
 }

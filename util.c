@@ -58,7 +58,7 @@ int mc_list_add(array_list_t list, int index, const void* pelement, size_t eleme
 		list->reserved = new_reserved;
 	}
 
-	memmove(list->array + (index + 1) * element_size, list->array + index * element_size, element_size);
+	memmove(list->array + (index + 1) * element_size, list->array + index * element_size, (list->count - index - 1) * element_size);
 	if (pelement)
 	{
 		memcpy(list->array + index * element_size, pelement, element_size);
@@ -102,5 +102,6 @@ void mc_list_splice(array_list_t list, int start, int count)
 	}
 
 	int end = min(start + count, list->count);
-	memmove(list->array + start, list->array + (start + count) * list->element_size, (end - start) * list->element_size);
+	memmove(list->array + start * list->element_size, list->array + end * list->element_size, (list->count - end) * list->element_size);
+	list->count -= count;
 }
