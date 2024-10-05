@@ -337,6 +337,8 @@ static void world_liquid_spread(block_coords_t coords)
 
 static void world_block_tick(void)
 {
+	/* Remove this check and put tick counter in the liquid itself. TO DO */
+	/* TO DO liquids clean seemingly randomly */
 	if (ticks % 5 != 0)
 	{
 		return;

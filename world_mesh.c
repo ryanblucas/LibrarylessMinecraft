@@ -119,7 +119,7 @@ static struct vertex_array_list* world_mesh_quad(struct vertex_array_list* list,
 static struct vertex_array_list* world_mesh_flowing_water(struct vertex_array_list* list, int mask, int strength, enum quad_normal normal)
 {
 	vertex_t a, b, c, d;
-	float s = 1 - ((7 - strength) + 1) / 16.0F;
+	float s = 1 - ((7 - strength) + 1) / 8.0F;
 	switch (normal)
 	{
 	case LEFT:
