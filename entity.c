@@ -76,15 +76,22 @@ void entity_player_update(entity_t* ent, float delta)
 
 	if (window_input_clicked(INPUT_BREAK_BLOCK))
 	{
-		world_block_set(world_ray_cast(camera_position(), camera_forward(), 5.0F).block, BLOCK_AIR);
+		world_block_set(world_ray_cast(camera_position(), camera_forward(), 5.0F, RAY_SOLID).block, BLOCK_AIR);
 	}
 	if (window_input_clicked(INPUT_PLACE_BLOCK))
 	{
-		block_coords_t bc = world_ray_neighbor(world_ray_cast(camera_position(), camera_forward(), 5.0F));
+		block_coords_t bc = world_ray_neighbor(world_ray_cast(camera_position(), camera_forward(), 5.0F, RAY_SOLID));
 		if (!aabb_collides_aabb(ent->hitbox, (aabb_t) { .min = block_coords_to_vector(bc), .max = vector3_add_scalar(block_coords_to_vector(bc), 1.0F) }))
 		{
 			world_block_set(bc, to_place + 1);
 		}
+	}
+
+	if (window_input_clicked(INPUT_QUEUE_BLOCK_INFO))
+	{
+		block_coords_t bc = world_ray_cast(camera_position(), camera_forward(), 16.0F, RAY_SOLID | RAY_LIQUID).block;
+		GRAPHICS_DEBUG_SET_BLOCK(bc);
+		world_block_debug(bc, stderr);
 	}
 }
 

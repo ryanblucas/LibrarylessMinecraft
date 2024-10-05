@@ -11,6 +11,12 @@
 #define ROUND_DOWN(c, m) (((c) < 0 ? -((-(c) - 1 + (m)) / (m)) : (c) / (m)) * (m))
 #define BUCKET_COUNT 32
 
+static struct liquid* world_liquid_get(block_coords_t coords);
+static void world_liquid_remove(block_coords_t coords);
+static struct liquid* world_liquid_add(block_coords_t coords, int strength);
+static inline int world_liquid_strength(block_coords_t coords);
+static void world_liquid_spread(block_coords_t coords);
+
 array_list_t chunk_list;
 static array_list_t update_list;
 static int ticks;
@@ -82,16 +88,20 @@ struct ray_state
 	ray_t curr;
 	float len;
 	vector3_t inv_dir, dir, start;
+	ray_settings_t settings;
 };
 
 void world_raycast_loop(block_coords_t i, void* user)
 {
-	if (!IS_SOLID(world_block_get(i)))
+	struct ray_state* state = (struct ray_state*)user;
+	block_type_t type = world_block_get(i);
+	if (!(state->settings & RAY_SOLID && IS_SOLID(type))
+		&& !(state->settings & RAY_AIR && type == BLOCK_AIR)
+		&& !(state->settings & RAY_LIQUID && world_liquid_get(i)))
 	{
 		return;
 	}
 
-	struct ray_state* state = (struct ray_state*)user;
 	vector3_t box_min = block_coords_to_vector(i),
 		box_max = vector3_add_scalar(box_min, 1.0F);
 
@@ -119,7 +129,7 @@ void world_raycast_loop(block_coords_t i, void* user)
 	}
 }
 
-ray_t world_ray_cast(vector3_t start, vector3_t direction, float len)
+ray_t world_ray_cast(vector3_t start, vector3_t direction, float len, ray_settings_t settings)
 {
 	direction = vector3_normalize(direction);
 	struct ray_state state =
@@ -128,7 +138,8 @@ ray_t world_ray_cast(vector3_t start, vector3_t direction, float len)
 		.dir = direction,
 		.inv_dir = vector3_scalar_div(1.0F, direction),
 		.start = start,
-		.len = len
+		.len = len,
+		.settings = settings
 	};
 	world_region_loop(vector_to_block_coords(start), vector_to_block_coords(state.curr.max), world_raycast_loop, &state);
 	return state.curr;
@@ -210,7 +221,7 @@ int world_region_aabb(block_coords_t _min, block_coords_t _max, aabb_t* arr, siz
 
 static int update_list_start = 0;
 
-static void world_block_update(block_coords_t coords)
+void world_block_update(block_coords_t coords)
 {
 	if (IS_INVALID_BLOCK_COORDS(coords) || !world_chunk_get(coords.x, coords.z))
 	{
@@ -255,8 +266,7 @@ static void world_liquid_remove(block_coords_t coords)
 	}
 	for (int i = 0; i < mc_list_count(chunk->flowing_liquid); i++)
 	{
-		struct liquid* curr = MC_LIST_CAST_GET(chunk->flowing_liquid, i, struct liquid);
-		if (is_block_coords_equal(coords, curr->position))
+		if (is_block_coords_equal(coords, MC_LIST_CAST_GET(chunk->flowing_liquid, i, struct liquid)->position))
 		{
 			mc_list_remove(chunk->flowing_liquid, i, NULL, 0);
 			world_block_update(coords);
@@ -317,7 +327,10 @@ static void world_liquid_spread(block_coords_t coords)
 	}
 
 	/* TO DO: average push */
-	world_block_update(coords);
+	if (existing->strength != strength)
+	{
+		world_block_update(coords);
+	}
 	existing->strength = strength;
 	world_chunk_get(coords.x, coords.z)->dirty_mask |= LIQUID_BIT;
 }
@@ -333,6 +346,7 @@ static void world_block_tick(void)
 	for (int i = update_list_start - 1; i >= 0; i--)
 	{
 		block_coords_t coords = *MC_LIST_CAST_GET(update_list, i, block_coords_t);
+		GRAPHICS_DEBUG_SET_BLOCK(coords);
 		bool is_source = world_block_get(coords) == BLOCK_WATER;
 		struct liquid* pflow = world_liquid_get(coords);
 		if (!is_source && !pflow)
@@ -401,6 +415,21 @@ void world_block_set(block_coords_t coords, block_type_t type)
 	world_block_update((block_coords_t) { coords.x, coords.y + 1, coords.z });
 	world_block_update((block_coords_t) { coords.x, coords.y, coords.z - 1 });
 	world_block_update((block_coords_t) { coords.x, coords.y, coords.z + 1 });
+}
+
+void world_block_debug(block_coords_t coords, FILE* stream)
+{
+	block_type_t id = world_block_get(coords);
+
+	const char* name = "UNKNOWN";
+#define DEFINE_BLOCK(block) case BLOCK_ ## block: name = #block; break;
+	switch (id)
+	{
+		BLOCK_LIST
+	}
+#undef DEFINE_BLOCK
+
+	fprintf(stream, "Block at (%i, %i, %i) is \"%s,\" block id: %i. Liquid strength: %i\n", coords.x, coords.y, coords.z, name, id, world_liquid_strength(coords));
 }
 
 void world_update(float delta)

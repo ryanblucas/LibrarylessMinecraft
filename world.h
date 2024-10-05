@@ -20,13 +20,17 @@
 
 enum
 {
-	BLOCK_AIR,
-	BLOCK_GRASS,
-	BLOCK_DIRT,
-	BLOCK_STONE,
-	BLOCK_WATER,
+#define DEFINE_BLOCK(name) BLOCK_ ## name,
+#define BLOCK_LIST \
+	DEFINE_BLOCK(AIR) \
+	DEFINE_BLOCK(GRASS) \
+	DEFINE_BLOCK(DIRT) \
+	DEFINE_BLOCK(STONE) \
+	DEFINE_BLOCK(WATER) \
 
+	BLOCK_LIST
 	BLOCK_COUNT
+#undef DEFINE_BLOCK
 };
 typedef uint8_t block_type_t;
 
@@ -64,8 +68,15 @@ extern inline bool is_block_coords_equal(block_coords_t a, block_coords_t b)
 void world_init(void);
 void world_destroy(void);
 
-/* Raycasts from start pointing in "direction" with maximum length "len." */
-ray_t world_ray_cast(vector3_t start, vector3_t direction, float len);
+typedef enum ray_settings
+{
+	RAY_SOLID	= 0x01,
+	RAY_LIQUID	= 0x02,
+	RAY_AIR		= 0x04,
+} ray_settings_t;
+
+/* Raycasts from start pointing in "direction" with maximum length "len." Returns the closest object that fits in the "settings" query bitmask. */
+ray_t world_ray_cast(vector3_t start, vector3_t direction, float len, ray_settings_t settings);
 /* Returns the block coords of the neighbor of a ray */
 block_coords_t world_ray_neighbor(ray_t ray);
 
@@ -78,6 +89,10 @@ int world_region_aabb(block_coords_t min, block_coords_t max, aabb_t* arr, size_
 block_type_t world_block_get(block_coords_t coords);
 /* Sets block at coords to type */
 void world_block_set(block_coords_t coords, block_type_t type);
+/* Debugs info about a block to stream */
+void world_block_debug(block_coords_t coords, FILE* stream);
+/* Updates block */
+void world_block_update(block_coords_t coords);
 
 /* Updates world */
 void world_update(float delta);
