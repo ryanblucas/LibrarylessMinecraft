@@ -308,31 +308,31 @@ static void world_liquid_spread(block_coords_t coords)
 		b_s = world_liquid_strength((block_coords_t) { coords.x, coords.y, coords.z + 1 });
 	int strength = max(l_s, max(r_s, max(f_s, b_s))) - 1;
 
+	struct liquid* existing = world_liquid_get(coords);
+	if (existing && existing->strength == WATER_STRENGTH)
+	{
+		return;
+	}
+
 	if (strength <= 0)
 	{
 		world_liquid_remove(coords);
 		return;
 	}
 
-	struct liquid* existing = world_liquid_get(coords);
 	if (!existing)
 	{
 		world_liquid_add(coords, strength);
 		return;
 	}
 
-	if (existing->strength == WATER_STRENGTH)
-	{
-		return;
-	}
-
-	/* TO DO: average push */
 	if (existing->strength != strength)
 	{
+		/* TO DO: average push */
 		world_block_update(coords);
+		existing->strength = strength;
+		world_chunk_get(coords.x, coords.z)->dirty_mask |= LIQUID_BIT;
 	}
-	existing->strength = strength;
-	world_chunk_get(coords.x, coords.z)->dirty_mask |= LIQUID_BIT;
 }
 
 static void world_block_tick(void)
@@ -342,11 +342,20 @@ static void world_block_tick(void)
 		return;
 	}
 
+	/* TEMPORARY FIX FOR WATER *TO DO* */
+	for (int i = 0; i < mc_list_count(chunk_list); i++)
+	{
+		array_list_t water = MC_LIST_CAST_GET(chunk_list, i, struct chunk)->flowing_liquid;
+		for (int j = 0; j < mc_list_count(water); j++)
+		{
+			world_block_update(MC_LIST_CAST_GET(water, j, struct liquid)->position);
+		}
+	}
+
 	update_list_start = mc_list_count(update_list);
 	for (int i = update_list_start - 1; i >= 0; i--)
 	{
 		block_coords_t coords = *MC_LIST_CAST_GET(update_list, i, block_coords_t);
-		GRAPHICS_DEBUG_SET_BLOCK(coords);
 		bool is_source = world_block_get(coords) == BLOCK_WATER;
 		struct liquid* pflow = world_liquid_get(coords);
 		if (!is_source && !pflow)
@@ -365,6 +374,7 @@ static void world_block_tick(void)
 		}
 
 		block_coords_t down = (block_coords_t){ coords.x, coords.y - 1, coords.z };
+		world_liquid_spread(coords);
 		if (IS_SOLID(world_block_get(down)))
 		{
 			world_liquid_spread((block_coords_t) { coords.x - 1, coords.y, coords.z });
