@@ -90,7 +90,7 @@ void world_render(float delta);
 
 struct liquid
 {
-	block_coords_t position, origin;
+	block_coords_t position;
 	vector3_t push;
 	int strength;
 };

@@ -62,6 +62,8 @@ void graphics_buffer_delete(vertex_buffer_t* buffer);
 /* Draws vertex buffer with current shader. */
 void graphics_buffer_draw(vertex_buffer_t buffer);
 
+#define GRAPHICS_DEBUG_SET_BLOCK(coords) graphics_debug_set_cube(block_coords_to_vector(coords), (vector3_t) { 1.0F, 1.0F, 1.0F })
+
 /* Clears debug buffer */
 void graphics_debug_clear(void);
 /* Sets line to draw from "begin" to "end" */

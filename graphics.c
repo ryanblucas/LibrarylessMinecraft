@@ -30,7 +30,7 @@ struct shader
 struct vertex_buffer
 {
 	GLuint vao, vbo;
-	GLsizei size, reserved, start;
+	GLsizei size, reserved;
 };
 
 static shader_t current_shader;
@@ -40,17 +40,13 @@ static sampler_t current_sampler;
 static shader_t line_shader;
 static struct vertex_buffer debug_buffer;
 
-/*	64 is more than enough. NOTE: if more than 64 are on the screen and another
-	primitive is "added," it resets position to 0 and size to 1. This discards all
-	other primitives regardless of how long they were on screen. */
-static struct debug_primitive
+struct debug_primitive
 {
-	float timestamp;
-	enum
-	{
-		DEBUG_LINE, DEBUG_CUBE
-	} type;
-} primitives[64];
+	int start, size;
+	double timestamp;
+	hash_t hash;
+};
+static array_list_t primitives;
 
 void graphics_init(void)
 {
@@ -62,7 +58,8 @@ void graphics_init(void)
 
 	glGenVertexArrays(1, &debug_buffer.vao);
 	glGenBuffers(1, &debug_buffer.vbo);
-	debug_buffer.reserved = sizeof primitives / sizeof * primitives * 24;
+	debug_buffer.reserved = 64 * 24;
+	primitives = mc_list_create(sizeof(struct debug_primitive));
 
 	glBindVertexArray(debug_buffer.vao);
 	glBindBuffer(GL_ARRAY_BUFFER, debug_buffer.vbo);
@@ -76,6 +73,7 @@ void graphics_init(void)
 
 void graphics_destroy(void)
 {
+	mc_list_destroy(&primitives);
 	graphics_shader_delete(&line_shader);
 	glDeleteBuffers(1, &debug_buffer.vbo);
 	glDeleteVertexArrays(1, &debug_buffer.vao);
@@ -373,44 +371,63 @@ void graphics_buffer_draw(vertex_buffer_t buffer)
 
 void graphics_debug_clear(void)
 {
-	debug_buffer.start = 0;
-	debug_buffer.size = 0;
+	mc_list_splice(primitives, 0, mc_list_count(primitives));
 }
 
-static inline int graphics_debug_add_primitive(int type, int len)
+static inline int graphics_debug_add_primitive(int length, hash_t hash)
 {
-	int empty_prim_i = 0;
-	for (int buf_i = 0; empty_prim_i < sizeof primitives / sizeof * primitives && buf_i < debug_buffer.start + debug_buffer.size; empty_prim_i++)
+	for (int i = 0; i < mc_list_count(primitives); i++)
 	{
-		buf_i += primitives[empty_prim_i].type == DEBUG_LINE ? 2 : 24;
+		struct debug_primitive* curr = MC_LIST_CAST_GET(primitives, i, struct debug_primitive);
+		if (curr->hash == hash)
+		{
+			curr->timestamp = window_time();
+			return curr->start;
+		}
 	}
 
-	if (empty_prim_i >= sizeof primitives / sizeof * primitives)
+	int final_end = 0;
+	if (mc_list_count(primitives) > 0)
 	{
-		empty_prim_i = 0;
-		graphics_debug_clear();
+		struct debug_primitive* final = MC_LIST_CAST_GET(primitives, mc_list_count(primitives) - 1, struct debug_primitive);
+		final_end = final->start + final->size;
 	}
+	struct debug_primitive next =
+	{
+		.start = final_end,
+		.size = length,
+		.timestamp = window_time(),
+		.hash = hash
+	};
+	mc_list_add(primitives, mc_list_count(primitives), &next, sizeof next);
 
-	int res = debug_buffer.size + debug_buffer.start;
-	primitives[empty_prim_i].type = type;
-	primitives[empty_prim_i].timestamp = (float)window_time();
-	debug_buffer.size += len;
-	return res;
+	if (final_end >= debug_buffer.reserved)
+	{
+		graphics_buffer_bind(&debug_buffer);
+		int old_reserved = debug_buffer.reserved;
+		float* data = mc_malloc(sizeof * data * 3 * old_reserved);
+		glGetBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * 3 * old_reserved, data);
+
+		debug_buffer.reserved *= 2;
+		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 3 * debug_buffer.reserved, NULL, GL_STATIC_DRAW);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, old_reserved * sizeof(float) * 3, data);
+
+		free(data);
+	}
+	return next.start;
 }
 
 void graphics_debug_set_line(vector3_t begin, vector3_t end)
 {
-	int buffer_pos = graphics_debug_add_primitive(DEBUG_LINE, 2);
+	float pts[] = { begin.x, begin.y, begin.z, end.x, end.y, end.z };
+	int buffer_pos = graphics_debug_add_primitive(2, mc_hash(pts, sizeof * pts));
 	graphics_buffer_bind(&debug_buffer);
-	float pts[] = {begin.x, begin.y, begin.z, end.x, end.y, end.z};
 	glBufferSubData(GL_ARRAY_BUFFER, buffer_pos, sizeof pts, pts);
 	ASSERT_NO_ERROR();
 }
 
 void graphics_debug_set_cube(vector3_t pos, vector3_t dim)
 {
-	int buffer_pos = graphics_debug_add_primitive(DEBUG_CUBE, 24);
-	graphics_buffer_bind(&debug_buffer);
 	float pts[] =
 	{
 		pos.x, pos.y, pos.z,
@@ -438,6 +455,8 @@ void graphics_debug_set_cube(vector3_t pos, vector3_t dim)
 		pos.x + dim.x, pos.y + dim.y, pos.z,
 		pos.x + dim.x, pos.y + dim.y, pos.z + dim.z,
 	};
+	int buffer_pos = graphics_debug_add_primitive(24, mc_hash(pts, sizeof * pts));
+	graphics_buffer_bind(&debug_buffer);
 	glBufferSubData(GL_ARRAY_BUFFER, buffer_pos * sizeof(float) * 3, sizeof pts, pts);
 	ASSERT_NO_ERROR();
 }
@@ -465,19 +484,22 @@ void graphics_debug_draw(void)
 	mc_panic_if(!us || us->type != GL_INT, "invalid debug shader");
 	glUniform1i(us->location, COLOR_CREATE(255, 255, 255));
 
-	glDrawArrays(GL_LINES, debug_buffer.start, debug_buffer.size);
-	ASSERT_NO_ERROR();
-
-	int expired_buf_pos = debug_buffer.start;
-	for (int i = 0, buf_i = 0; i < sizeof primitives / sizeof * primitives && buf_i <= debug_buffer.start + debug_buffer.size; i++)
+	if (mc_list_count(primitives) <= 0)
 	{
-		if (window_time() - primitives[i].timestamp > 5.0F)
-		{
-			expired_buf_pos = buf_i;
-		}
-		buf_i += primitives[i].type == DEBUG_LINE ? 2 : 24;
+		return;
 	}
 
-	debug_buffer.size += debug_buffer.start - expired_buf_pos;
-	debug_buffer.start = expired_buf_pos;
+	struct debug_primitive* first = MC_LIST_CAST_GET(primitives, 0, struct debug_primitive),
+		*last = MC_LIST_CAST_GET(primitives, mc_list_count(primitives) - 1, struct debug_primitive);
+	int start = first->start, count = last->start + last->size - first->start;
+	glDrawArrays(GL_LINES, start, count);
+	ASSERT_NO_ERROR();
+
+	for (int i = mc_list_count(primitives) - 1; i >= 0; i--)
+	{
+		if (window_time() - MC_LIST_CAST_GET(primitives, i, struct debug_primitive)->timestamp > 3.5F)
+		{
+			mc_list_remove(primitives, i, NULL, 0);
+		}
+	}
 }
