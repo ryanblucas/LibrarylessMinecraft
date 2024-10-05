@@ -404,13 +404,14 @@ static inline int graphics_debug_add_primitive(int length, hash_t hash)
 	if (final_end >= debug_buffer.reserved)
 	{
 		graphics_buffer_bind(&debug_buffer);
-		int old_reserved = debug_buffer.reserved;
-		float* data = mc_malloc(sizeof * data * 3 * old_reserved);
-		glGetBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * 3 * old_reserved, data);
+		int old_reserved = debug_buffer.reserved * sizeof(float);
+		float* data = mc_malloc(old_reserved);
+		glGetBufferSubData(GL_ARRAY_BUFFER, 0, old_reserved, data);
 
 		debug_buffer.reserved *= 2;
 		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 3 * debug_buffer.reserved, NULL, GL_STATIC_DRAW);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, old_reserved * sizeof(float) * 3, data);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, old_reserved, data);
+		ASSERT_NO_ERROR();
 
 		free(data);
 	}
@@ -420,7 +421,7 @@ static inline int graphics_debug_add_primitive(int length, hash_t hash)
 void graphics_debug_set_line(vector3_t begin, vector3_t end)
 {
 	float pts[] = { begin.x, begin.y, begin.z, end.x, end.y, end.z };
-	int buffer_pos = graphics_debug_add_primitive(2, mc_hash(pts, sizeof * pts));
+	int buffer_pos = graphics_debug_add_primitive(2, mc_hash(pts, sizeof pts));
 	graphics_buffer_bind(&debug_buffer);
 	glBufferSubData(GL_ARRAY_BUFFER, buffer_pos, sizeof pts, pts);
 	ASSERT_NO_ERROR();
@@ -455,7 +456,7 @@ void graphics_debug_set_cube(vector3_t pos, vector3_t dim)
 		pos.x + dim.x, pos.y + dim.y, pos.z,
 		pos.x + dim.x, pos.y + dim.y, pos.z + dim.z,
 	};
-	int buffer_pos = graphics_debug_add_primitive(24, mc_hash(pts, sizeof * pts));
+	int buffer_pos = graphics_debug_add_primitive(24, mc_hash(pts, sizeof pts));
 	graphics_buffer_bind(&debug_buffer);
 	glBufferSubData(GL_ARRAY_BUFFER, buffer_pos * sizeof(float) * 3, sizeof pts, pts);
 	ASSERT_NO_ERROR();

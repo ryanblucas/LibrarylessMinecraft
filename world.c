@@ -407,7 +407,7 @@ void world_block_set(block_coords_t coords, block_type_t type)
 
 	chunk->arr[CHUNK_INDEX_OF(coords.x - chunk->x, coords.y, coords.z - chunk->z)] = type;
 	chunk->dirty_mask |= OPAQUE_BIT;
-
+	
 	world_block_update((block_coords_t) { coords.x, coords.y, coords.z });
 	world_block_update((block_coords_t) { coords.x - 1, coords.y, coords.z });
 	world_block_update((block_coords_t) { coords.x + 1, coords.y, coords.z });
