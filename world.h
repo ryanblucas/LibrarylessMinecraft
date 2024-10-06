@@ -39,6 +39,13 @@ typedef struct block_coords
 	int x, y, z;
 } block_coords_t;
 
+typedef struct liquid
+{
+	block_coords_t position;
+	vector3_t push;
+	int strength;
+} liquid_t;
+
 typedef struct ray
 {
 	block_coords_t block;	/* The block this ray hit. Is invalid if the ray never hits any block. */
@@ -85,6 +92,17 @@ void world_region_loop(block_coords_t min, block_coords_t max, world_loop_callba
 /* Sets contents of arr to a region's blocks -> AABBs. Returns the amount of blocks in the region. Writes to arr until arr no longer has space. */
 int world_region_aabb(block_coords_t min, block_coords_t max, aabb_t* arr, size_t arr_len);
 
+/* Converts a liquid to an AABB */
+aabb_t world_liquid_to_aabb(liquid_t liquid);
+/* Gets liquid at position */
+liquid_t* world_liquid_get(block_coords_t coords);
+/* Adds liquid to position with settings. Will update at coords, so this will spread. */
+liquid_t* world_liquid_add(block_coords_t coords, vector3_t push, int strength);
+/* Removes all liquids at position */
+void world_liquid_remove(block_coords_t coords);
+/* Adds the liquid average of what's around it at coords */
+void world_liquid_spread(block_coords_t coords);
+
 /* Gets block at coordinates */
 block_type_t world_block_get(block_coords_t coords);
 /* Sets block at coords to type */
@@ -102,13 +120,6 @@ void world_render(float delta);
 #ifdef WORLD_INTERNAL
 
 #include "graphics.h"
-
-struct liquid
-{
-	block_coords_t position;
-	vector3_t push;
-	int strength;
-};
 
 #define OPAQUE_BIT	1
 #define LIQUID_BIT	2

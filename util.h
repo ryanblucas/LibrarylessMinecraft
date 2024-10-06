@@ -123,25 +123,15 @@ extern inline hash_t mc_hash(const void* _buf, int buf_len)
 #define _USE_MATH_DEFINES
 #include <math.h>
 
-/* Compares two floats for equality */
-extern inline bool float_equals(float a, float b)
+/* Compares two floats for equality using an adaptive epsilon. */
+extern inline bool float_adaptive_eq(float a, float b)
 {
-	float absA = fabsf(a);
-	float absB = fabsf(b);
 	float diff = fabsf(a - b);
-
-	if (a == b)
+	if (diff <= 1.0e-3F)
 	{
 		return true;
 	}
-	else if (a == 0 || b == 0 || diff < FLT_MIN)
-	{
-		return diff < (FLT_EPSILON * FLT_MIN);
-	}
-	else
-	{
-		return diff / (absA + absB) < FLT_EPSILON;
-	}
+	return diff <= 1.0e-3F * max(fabsf(a), fabsf(b));
 }
 
 #include <intrin.h>
@@ -334,7 +324,7 @@ extern inline vector3_t vector3_normalize(vector3_t a)
 {
 	float mag = vector3_magnitude(a);
 	/* Way to remove this branch? TO DO */
-	if (float_equals(mag, 0.0F))
+	if (float_adaptive_eq(mag, 0.0F))
 	{
 		return a;
 	}
@@ -360,6 +350,12 @@ extern inline vector3_t vector3_cross(vector3_t a, vector3_t b)
 	vector3_t res;
 	_mm_store_ps((float*)&res, _mm_fmsub_ps(tmp0, tmp1, tmp4));
 	return res;
+}
+
+/* Determines if each component of the vector is equal using float_adaptive_eq. */
+extern inline bool vector3_adaptive_eq(vector3_t a, vector3_t b)
+{
+	return float_adaptive_eq(a.x, b.x) && float_adaptive_eq(a.y, b.y) && float_adaptive_eq(a.z, b.z);
 }
 
 /* Adds a with b and stores result in a. */
