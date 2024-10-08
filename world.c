@@ -284,7 +284,7 @@ static liquid_t* world_liquid_add(block_coords_t coords, vector3_t push, int str
 	{
 		return NULL;
 	}
-	liquid_t to_add = { .position = coords, .push = push, .strength = strength };
+	liquid_t to_add = { .position = coords, .push = push, .strength = strength, .tick_count = ticks };
 	int i = mc_list_add(chunk->flowing_liquid, mc_list_count(chunk->flowing_liquid), &to_add, sizeof to_add);
 	chunk->dirty_mask |= LIQUID_BIT;
 	world_block_update(coords);
@@ -327,6 +327,8 @@ static void world_liquid_spread(block_coords_t coords)
 		b_p = vector3_mul_scalar((vector3_t) { 0.0F, 0.0F, 1.0F }, 8.0F - (float)b_s);
 	vector3_t push = vector3_normalize(vector3_add(vector3_add(l_p, r_p), vector3_add(f_p, b_p)));
 
+	/* TO DO: would be simpler if you just called world_liquid_add, since the effect (should) be the same, but a simple replacement doesn't work quite right. */
+
 	if (!existing)
 	{
 		world_liquid_add(coords, push, strength);
@@ -337,6 +339,7 @@ static void world_liquid_spread(block_coords_t coords)
 	if (existing->strength != strength)
 	{
 		existing->strength = strength;
+		existing->tick_count = ticks;
 
 		world_block_update(coords);
 		world_chunk_get(coords.x, coords.z)->dirty_mask |= LIQUID_BIT;
@@ -345,12 +348,7 @@ static void world_liquid_spread(block_coords_t coords)
 
 static void world_block_tick(void)
 {
-	/* Remove this check and put tick counter in the liquid itself. TO DO */
 	/* TO DO liquids clean seemingly randomly */
-	if (ticks % 5 != 0)
-	{
-		return;
-	}
 
 	/* TEMPORARY FIX FOR WATER *TO DO* */
 	for (int i = 0; i < mc_list_count(chunk_list); i++)
@@ -381,6 +379,12 @@ static void world_block_tick(void)
 		if (IS_SOLID(world_block_get(coords)))
 		{
 			world_liquid_remove(coords);
+		}
+
+		if (ticks - pflow->tick_count < 5)
+		{
+			world_block_update(coords);
+			continue;
 		}
 
 		block_coords_t down = (block_coords_t){ coords.x, coords.y - 1, coords.z };

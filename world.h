@@ -41,9 +41,10 @@ typedef struct block_coords
 
 typedef struct liquid
 {
-	block_coords_t position;
-	vector3_t push;
-	int strength;
+	block_coords_t position; /* Position of liquid */
+	vector3_t push;			/* Which way the liquid pushes */
+	int strength;			/* Strength of liquid (1-7) */
+	int tick_count;			/* When the liquid was last updated */
 } liquid_t;
 
 typedef struct ray
