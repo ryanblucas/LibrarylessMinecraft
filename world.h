@@ -45,6 +45,7 @@ typedef struct liquid
 	vector3_t push;			/* Which way the liquid pushes */
 	int strength;			/* Strength of liquid (1-7) */
 	int tick_count;			/* When the liquid was last updated */
+	bool came_from_above;	/* Whether or not the liquid came from above */
 } liquid_t;
 
 typedef struct ray

@@ -29,13 +29,15 @@ struct chunk* world_chunk_create(int x_o, int z_o)
 	for (int i = 0; i < CHUNK_FLOOR_BLOCK_COUNT; i++)
 	{
 		int x = CHUNK_X(i), z = CHUNK_Z(i);
-		for (int j = CHUNK_WY - 1; j >= 129; j--)
+		for (int j = CHUNK_WY - 1; j >= 0; j--)
 		{
 			next->arr[CHUNK_INDEX_OF(x, j, z)] = BLOCK_AIR;
 		}
 		next->arr[CHUNK_INDEX_OF(x, 128, z)] = BLOCK_GRASS;
 		next->arr[CHUNK_INDEX_OF(x, 120, z)] = BLOCK_GRASS;
 	}
+	world_block_set((block_coords_t) { 8, 128, 8 }, BLOCK_AIR);
+	world_block_set((block_coords_t) { 8, 129, 8 }, BLOCK_WATER);
 	next->dirty_mask = OPAQUE_BIT;
 	next->opaque_buffer = graphics_buffer_create(NULL, 0);
 	next->liquid_buffer = graphics_buffer_create(NULL, 0);
@@ -285,6 +287,8 @@ static liquid_t* world_liquid_add(block_coords_t coords, vector3_t push, int str
 		return NULL;
 	}
 	liquid_t to_add = { .position = coords, .push = push, .strength = strength, .tick_count = ticks };
+	to_add.came_from_above = !!world_liquid_get((block_coords_t) { coords.x, coords.y + 1, coords.z });
+
 	int i = mc_list_add(chunk->flowing_liquid, mc_list_count(chunk->flowing_liquid), &to_add, sizeof to_add);
 	chunk->dirty_mask |= LIQUID_BIT;
 	world_block_update(coords);
@@ -346,11 +350,50 @@ static void world_liquid_spread(block_coords_t coords)
 	}
 }
 
+static void world_liquid_try_tick(block_coords_t coords)
+{
+	bool is_source = world_block_get(coords) == BLOCK_WATER;
+	liquid_t* pflow = world_liquid_get(coords);
+	if (!is_source && !pflow)
+	{
+		return;
+	}
+	else if (is_source && !pflow)
+	{
+		world_liquid_add(coords, (vector3_t) { 0 }, WATER_STRENGTH);
+		return;
+	}
+
+	block_coords_t down = (block_coords_t){ coords.x, coords.y - 1, coords.z };
+	if (IS_SOLID(world_block_get(coords)) || (pflow->came_from_above && !world_liquid_get((block_coords_t) { coords.x, coords.y + 1, coords.z })))
+	{
+		world_liquid_remove(coords);
+	}
+
+	if (ticks - pflow->tick_count < 5)
+	{
+		world_block_update(coords);
+		return;
+	}
+
+	world_liquid_spread(coords);
+	if (IS_SOLID(world_block_get(down)))
+	{
+		world_liquid_spread((block_coords_t) { coords.x - 1, coords.y, coords.z });
+		world_liquid_spread((block_coords_t) { coords.x + 1, coords.y, coords.z });
+		world_liquid_spread((block_coords_t) { coords.x, coords.y, coords.z - 1 });
+		world_liquid_spread((block_coords_t) { coords.x, coords.y, coords.z + 1 });
+		return;
+	}
+	if (!world_liquid_get(down))
+	{
+		world_liquid_add(down, (vector3_t) { 0 }, WATER_STRENGTH);
+	}
+}
+
 static void world_block_tick(void)
 {
-	/* TO DO liquids clean seemingly randomly */
-
-	/* TEMPORARY FIX FOR WATER *TO DO* */
+	/* TEMPORARY FIX FOR WATER *TO DO* -- this is slow and makes water clean in a random way */
 	for (int i = 0; i < mc_list_count(chunk_list); i++)
 	{
 		array_list_t water = MC_LIST_CAST_GET(chunk_list, i, struct chunk)->flowing_liquid;
@@ -364,40 +407,7 @@ static void world_block_tick(void)
 	for (int i = update_list_start - 1; i >= 0; i--)
 	{
 		block_coords_t coords = *MC_LIST_CAST_GET(update_list, i, block_coords_t);
-		bool is_source = world_block_get(coords) == BLOCK_WATER;
-		liquid_t* pflow = world_liquid_get(coords);
-		if (!is_source && !pflow)
-		{
-			continue;
-		}
-		else if (is_source && !pflow)
-		{
-			world_liquid_add(coords, (vector3_t) { 0 }, WATER_STRENGTH);
-			continue;
-		}
-
-		if (IS_SOLID(world_block_get(coords)))
-		{
-			world_liquid_remove(coords);
-		}
-
-		if (ticks - pflow->tick_count < 5)
-		{
-			world_block_update(coords);
-			continue;
-		}
-
-		block_coords_t down = (block_coords_t){ coords.x, coords.y - 1, coords.z };
-		world_liquid_spread(coords);
-		if (IS_SOLID(world_block_get(down)))
-		{
-			world_liquid_spread((block_coords_t) { coords.x - 1, coords.y, coords.z });
-			world_liquid_spread((block_coords_t) { coords.x + 1, coords.y, coords.z });
-			world_liquid_spread((block_coords_t) { coords.x, coords.y, coords.z - 1 });
-			world_liquid_spread((block_coords_t) { coords.x, coords.y, coords.z + 1 });
-			continue;
-		}
-		world_liquid_add(down, (vector3_t) { 0 }, WATER_STRENGTH);
+		world_liquid_try_tick(coords);
 	}
 	mc_list_splice(update_list, 0, update_list_start);
 	update_list_start = 0;

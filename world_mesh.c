@@ -258,12 +258,13 @@ static struct vertex_array_list* world_chunk_clean_liquid(struct vertex_array_li
 	{
 		struct liquid* liquid = MC_LIST_CAST_GET(chunk->flowing_liquid, i, struct liquid);
 		int mask = CHUNK_INDEX_OF(liquid->position.x - chunk->x, liquid->position.y, liquid->position.z - chunk->z);
-		val = world_mesh_flowing_water(val, mask, liquid->strength, LEFT);
-		val = world_mesh_flowing_water(val, mask, liquid->strength, RIGHT);
-		val = world_mesh_flowing_water(val, mask, liquid->strength, BACKWARD);
-		val = world_mesh_flowing_water(val, mask, liquid->strength, FORWARD);
-		val = world_mesh_flowing_water(val, mask, liquid->strength, UP);
-		val = world_mesh_flowing_water(val, mask, liquid->strength, DOWN);
+		int strength = liquid->came_from_above ? 8 : liquid->strength;
+		val = world_mesh_flowing_water(val, mask, strength, LEFT);
+		val = world_mesh_flowing_water(val, mask, strength, RIGHT);
+		val = world_mesh_flowing_water(val, mask, strength, BACKWARD);
+		val = world_mesh_flowing_water(val, mask, strength, FORWARD);
+		val = world_mesh_flowing_water(val, mask, strength, UP);
+		val = world_mesh_flowing_water(val, mask, strength, DOWN);
 	}
 
 	graphics_buffer_modify(chunk->liquid_buffer, val->array, val->count);
