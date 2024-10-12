@@ -1,6 +1,6 @@
 In order:
-	Water/liquids
-	Infinite world generation
+	Fix liquid updating
+
 	Frustum culling
 	Health system
 	User interface

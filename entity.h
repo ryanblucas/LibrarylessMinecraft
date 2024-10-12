@@ -48,4 +48,8 @@ extern inline void entity_gravity_then_move(entity_t* ent, float delta)
 	{
 		ent->velocity.y -= delta * 8.8F;
 	}
+	else
+	{
+		ent->velocity.y = 0.0F;
+	}
 }
