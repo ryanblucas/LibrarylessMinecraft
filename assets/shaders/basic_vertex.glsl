@@ -1,13 +1,15 @@
 #version 460 core
 
-layout (location = 0) in vec3 pos;
-layout (location = 1) in vec2 i_tex_pos;
+layout (location = 0) in uint i_pos;
 out vec2 tex_pos;
 uniform mat4 camera;
 uniform mat4 model;
 
 void main()
 {
-	tex_pos = i_tex_pos;
-	gl_Position = camera * (model * vec4(pos, 1.0));
+	tex_pos = vec2(((i_pos >> 20) & 255) + ((i_pos >> 18) & 1), (i_pos >> 19) & 1);
+	tex_pos.x /= 4.0; // Block count - 1, update w/ adding new blocks
+	float strength = float((i_pos >> 28) & 15);
+	strength = 1.0 - ((7.0 - strength) + 1.0) / 8.0F;
+	gl_Position = camera * (model * vec4(i_pos & 31, ((i_pos >> 10) & 255) + strength, (i_pos >> 5) & 31, 1.0));
 }

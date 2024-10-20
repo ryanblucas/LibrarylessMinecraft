@@ -22,49 +22,49 @@ enum quad_normal
 struct vertex_array_list
 {
 	size_t reserved, count;
-	vertex_t array[];
+	block_vertex_t array[];
 };
 
 static struct vertex_array_list* world_mesh_quad(struct vertex_array_list* list, int mask, block_type_t type, enum quad_normal normal)
 {
-	vertex_t a, b, c, d;
+	block_vertex_t a, b, c, d;
 	switch (normal)
 	{
 	case LEFT:
-		c = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask),		CHUNK_FZ(mask) };
-		b = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask),		CHUNK_FZ(mask) + 1 };
-		a = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask) + 1,	CHUNK_FZ(mask) + 1 };
-		d = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask) + 1,	CHUNK_FZ(mask) };
+		c = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask),		CHUNK_Y(mask),		CHUNK_Z(mask) );
+		b = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask),		CHUNK_Y(mask),		CHUNK_Z(mask) + 1 );
+		a = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask),		CHUNK_Y(mask) + 1,	CHUNK_Z(mask) + 1 );
+		d = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask),		CHUNK_Y(mask) + 1,	CHUNK_Z(mask) );
 		break;
 	case RIGHT:
-		a = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask),		CHUNK_FZ(mask) };
-		b = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask),		CHUNK_FZ(mask) + 1 };
-		c = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask) + 1,	CHUNK_FZ(mask) + 1 };
-		d = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask) + 1,	CHUNK_FZ(mask) };
+		a = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask) + 1,	CHUNK_Y(mask),		CHUNK_Z(mask) );
+		b = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask) + 1,	CHUNK_Y(mask),		CHUNK_Z(mask) + 1 );
+		c = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask) + 1,	CHUNK_Y(mask) + 1,	CHUNK_Z(mask) + 1 );
+		d = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask) + 1,	CHUNK_Y(mask) + 1,	CHUNK_Z(mask) );
 		break;
 	case UP:
-		c = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask),		CHUNK_FZ(mask) };
-		b = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask),		CHUNK_FZ(mask) };
-		a = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask),		CHUNK_FZ(mask) + 1 };
-		d = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask),		CHUNK_FZ(mask) + 1 };
+		c = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask),		CHUNK_Y(mask),		CHUNK_Z(mask) );
+		b = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask) + 1,	CHUNK_Y(mask),		CHUNK_Z(mask) );
+		a = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask) + 1,	CHUNK_Y(mask),		CHUNK_Z(mask) + 1 );
+		d = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask),		CHUNK_Y(mask),		CHUNK_Z(mask) + 1 );
 		break;
 	case DOWN:
-		a = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask) + 1,	CHUNK_FZ(mask) };
-		b = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask) + 1,	CHUNK_FZ(mask) };
-		c = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask) + 1,	CHUNK_FZ(mask) + 1 };
-		d = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask) + 1,	CHUNK_FZ(mask) + 1 };
+		a = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask),		CHUNK_Y(mask) + 1,	CHUNK_Z(mask) );
+		b = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask) + 1,	CHUNK_Y(mask) + 1,	CHUNK_Z(mask) );
+		c = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask) + 1,	CHUNK_Y(mask) + 1,	CHUNK_Z(mask) + 1 );
+		d = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask),		CHUNK_Y(mask) + 1,	CHUNK_Z(mask) + 1 );
 		break;
 	case FORWARD:
-		c = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask),		CHUNK_FZ(mask) + 1 };
-		b = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask),		CHUNK_FZ(mask) + 1 };
-		a = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask) + 1,	CHUNK_FZ(mask) + 1 };
-		d = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask) + 1,	CHUNK_FZ(mask) + 1 };
+		c = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask),		CHUNK_Y(mask),		CHUNK_Z(mask) + 1 );
+		b = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask) + 1,	CHUNK_Y(mask),		CHUNK_Z(mask) + 1 );
+		a = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask) + 1,	CHUNK_Y(mask) + 1,	CHUNK_Z(mask) + 1 );
+		d = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask),		CHUNK_Y(mask) + 1,	CHUNK_Z(mask) + 1 );
 		break;
 	case BACKWARD:
-		a = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask),		CHUNK_FZ(mask) };
-		b = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask),		CHUNK_FZ(mask) };
-		c = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask) + 1,	CHUNK_FZ(mask) };
-		d = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask) + 1,	CHUNK_FZ(mask) };
+		a = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask),		CHUNK_Y(mask),		CHUNK_Z(mask) );
+		b = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask) + 1,	CHUNK_Y(mask),		CHUNK_Z(mask) );
+		c = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask) + 1,	CHUNK_Y(mask) + 1,	CHUNK_Z(mask) );
+		d = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask),		CHUNK_Y(mask) + 1,	CHUNK_Z(mask) );
 		break;
 	default:
 		assert(false);
@@ -74,26 +74,18 @@ static struct vertex_array_list* world_mesh_quad(struct vertex_array_list* list,
 	if (normal & FLIPPED_BIT)
 	{
 		/* -1 for air */
-		c.tx = (float)(type - 1) / (BLOCK_COUNT - 1);
-		c.ty = 0.0F;
-		a.tx = c.tx + 1.0F / (BLOCK_COUNT - 1);
-		a.ty = 1.0F;
-		b.tx = a.tx;
-		b.ty = 0.0F;
-		d.tx = c.tx;
-		d.ty = 1.0F;
+		c = SET_BLOCK_VERTEX_TEXTURE(c, 0, 0, type - 1);
+		a = SET_BLOCK_VERTEX_TEXTURE(a, 1, 1, type - 1);
+		b = SET_BLOCK_VERTEX_TEXTURE(b, 1, 0, type - 1);
+		d = SET_BLOCK_VERTEX_TEXTURE(d, 0, 1, type - 1);
 	}
 	else
 	{
 		/* -1 for air */
-		a.tx = (float)(type) / (BLOCK_COUNT - 1);
-		a.ty = 0.0F;
-		c.tx = a.tx - 1.0F / (BLOCK_COUNT - 1);
-		c.ty = 1.0F;
-		b.tx = c.tx;
-		b.ty = 0.0F;
-		d.tx = a.tx;
-		d.ty = 1.0F;
+		a = SET_BLOCK_VERTEX_TEXTURE(a, 1, 0, type - 1);
+		c = SET_BLOCK_VERTEX_TEXTURE(c, 0, 1, type - 1);
+		b = SET_BLOCK_VERTEX_TEXTURE(b, 0, 0, type - 1);
+		d = SET_BLOCK_VERTEX_TEXTURE(d, 1, 1, type - 1);
 	}
 
 	list->array[list->count++] = a;
@@ -118,45 +110,44 @@ static struct vertex_array_list* world_mesh_quad(struct vertex_array_list* list,
 
 static struct vertex_array_list* world_mesh_flowing_water(struct vertex_array_list* list, int mask, int strength, enum quad_normal normal)
 {
-	vertex_t a, b, c, d;
-	float s = 1 - ((7 - strength) + 1) / 8.0F;
+	block_vertex_t a, b, c, d;
 	switch (normal)
 	{
 	case LEFT:
-		c = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask),		CHUNK_FZ(mask) };
-		b = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask),		CHUNK_FZ(mask) + 1 };
-		a = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask) + s,	CHUNK_FZ(mask) + 1 };
-		d = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask) + s,	CHUNK_FZ(mask) };
+		c = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask),		CHUNK_Y(mask),		CHUNK_Z(mask) );
+		b = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask),		CHUNK_Y(mask),		CHUNK_Z(mask) + 1 );
+		a = CREATE_LIQUID_VERTEX_POS(CHUNK_X(mask),		CHUNK_Y(mask),		CHUNK_Z(mask) + 1,	strength);
+		d = CREATE_LIQUID_VERTEX_POS(CHUNK_X(mask),		CHUNK_Y(mask),		CHUNK_Z(mask),		strength);
 		break;
 	case RIGHT:
-		a = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask),		CHUNK_FZ(mask) };
-		b = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask),		CHUNK_FZ(mask) + 1 };
-		c = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask) + s,	CHUNK_FZ(mask) + 1 };
-		d = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask) + s,	CHUNK_FZ(mask) };
+		a = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask) + 1,	CHUNK_Y(mask),		CHUNK_Z(mask) );
+		b = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask) + 1,	CHUNK_Y(mask),		CHUNK_Z(mask) + 1 );
+		c = CREATE_LIQUID_VERTEX_POS(CHUNK_X(mask) + 1,	CHUNK_Y(mask),		CHUNK_Z(mask) + 1,	strength);
+		d = CREATE_LIQUID_VERTEX_POS(CHUNK_X(mask) + 1,	CHUNK_Y(mask),		CHUNK_Z(mask),		strength);
 		break;
 	case UP:
-		c = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask),		CHUNK_FZ(mask) };
-		b = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask),		CHUNK_FZ(mask) };
-		a = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask),		CHUNK_FZ(mask) + 1 };
-		d = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask),		CHUNK_FZ(mask) + 1 };
+		c = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask),		CHUNK_Y(mask),		CHUNK_Z(mask) );
+		b = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask) + 1,	CHUNK_Y(mask),		CHUNK_Z(mask) );
+		a = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask) + 1,	CHUNK_Y(mask),		CHUNK_Z(mask) + 1 );
+		d = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask),		CHUNK_Y(mask),		CHUNK_Z(mask) + 1 );
 		break;
 	case DOWN:
-		a = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask) + s,	CHUNK_FZ(mask) };
-		b = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask) + s,	CHUNK_FZ(mask) };
-		c = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask) + s,	CHUNK_FZ(mask) + 1 };
-		d = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask) + s,	CHUNK_FZ(mask) + 1 };
+		a = CREATE_LIQUID_VERTEX_POS(CHUNK_X(mask),		CHUNK_Y(mask),		CHUNK_Z(mask),		strength);
+		b = CREATE_LIQUID_VERTEX_POS(CHUNK_X(mask) + 1,	CHUNK_Y(mask),		CHUNK_Z(mask),		strength);
+		c = CREATE_LIQUID_VERTEX_POS(CHUNK_X(mask) + 1,	CHUNK_Y(mask),		CHUNK_Z(mask) + 1,	strength);
+		d = CREATE_LIQUID_VERTEX_POS(CHUNK_X(mask),		CHUNK_Y(mask),		CHUNK_Z(mask) + 1,	strength);
 		break;
 	case FORWARD:
-		c = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask),		CHUNK_FZ(mask) + 1 };
-		b = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask),		CHUNK_FZ(mask) + 1 };
-		a = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask) + s,	CHUNK_FZ(mask) + 1 };
-		d = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask) + s,	CHUNK_FZ(mask) + 1 };
+		c = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask),		CHUNK_Y(mask),		CHUNK_Z(mask) + 1 );
+		b = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask) + 1,	CHUNK_Y(mask),		CHUNK_Z(mask) + 1 );
+		a = CREATE_LIQUID_VERTEX_POS(CHUNK_X(mask) + 1,	CHUNK_Y(mask),		CHUNK_Z(mask) + 1,	strength);
+		d = CREATE_LIQUID_VERTEX_POS(CHUNK_X(mask),		CHUNK_Y(mask),		CHUNK_Z(mask) + 1,	strength);
 		break;
 	case BACKWARD:
-		a = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask),		CHUNK_FZ(mask) };
-		b = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask),		CHUNK_FZ(mask) };
-		c = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask) + s,	CHUNK_FZ(mask) };
-		d = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask) + s,	CHUNK_FZ(mask) };
+		a = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask),		CHUNK_Y(mask),		CHUNK_Z(mask) );
+		b = CREATE_BLOCK_VERTEX_POS( CHUNK_X(mask) + 1,	CHUNK_Y(mask),		CHUNK_Z(mask) );
+		c = CREATE_LIQUID_VERTEX_POS(CHUNK_X(mask) + 1,	CHUNK_Y(mask),		CHUNK_Z(mask),		strength);
+		d = CREATE_LIQUID_VERTEX_POS(CHUNK_X(mask),		CHUNK_Y(mask),		CHUNK_Z(mask),		strength);
 		break;
 	default:
 		assert(false);
@@ -166,26 +157,18 @@ static struct vertex_array_list* world_mesh_flowing_water(struct vertex_array_li
 	if (normal & FLIPPED_BIT)
 	{
 		/* -1 for air */
-		c.tx = (float)(BLOCK_WATER - 1) / (BLOCK_COUNT - 1);
-		c.ty = 0.0F;
-		a.tx = c.tx + 1.0F / (BLOCK_COUNT - 1);
-		a.ty = 1.0F;
-		b.tx = a.tx;
-		b.ty = 0.0F;
-		d.tx = c.tx;
-		d.ty = 1.0F;
+		c = SET_BLOCK_VERTEX_TEXTURE(c, 0, 0, BLOCK_WATER - 1);
+		a = SET_BLOCK_VERTEX_TEXTURE(a, 1, 1, BLOCK_WATER - 1);
+		b = SET_BLOCK_VERTEX_TEXTURE(b, 1, 0, BLOCK_WATER - 1);
+		d = SET_BLOCK_VERTEX_TEXTURE(d, 0, 1, BLOCK_WATER - 1);
 	}
 	else
 	{
 		/* -1 for air */
-		a.tx = (float)(BLOCK_WATER) / (BLOCK_COUNT - 1);
-		a.ty = 0.0F;
-		c.tx = a.tx - 1.0F / (BLOCK_COUNT - 1);
-		c.ty = 1.0F;
-		b.tx = c.tx;
-		b.ty = 0.0F;
-		d.tx = a.tx;
-		d.ty = 1.0F;
+		a = SET_BLOCK_VERTEX_TEXTURE(a, 1, 0, BLOCK_WATER - 1);
+		c = SET_BLOCK_VERTEX_TEXTURE(c, 0, 1, BLOCK_WATER - 1);
+		b = SET_BLOCK_VERTEX_TEXTURE(b, 0, 0, BLOCK_WATER - 1);
+		d = SET_BLOCK_VERTEX_TEXTURE(d, 1, 1, BLOCK_WATER - 1);
 	}
 
 	list->array[list->count++] = a;

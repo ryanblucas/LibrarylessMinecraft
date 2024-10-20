@@ -146,8 +146,15 @@ extern array_list_t chunk_list;		/* struct chunk array_list */
 #define CHUNK_FY(mask)			(float)((mask) / CHUNK_FLOOR_BLOCK_COUNT)
 #define CHUNK_FZ(mask)			(float)(((mask) % CHUNK_FLOOR_BLOCK_COUNT) / CHUNK_WX)
 
+/* Initializes world's chunk manager */
+void world_chunk_init(void);
+/* Destroys chunk manager */
+void world_chunk_destroy(void);
+/* Creates chunk at (x, z). Rounds down to a multiple to 16 (ex. 14 -> 0, -5 -> -16) */
 struct chunk* world_chunk_create(int x_o, int z_o);
+/* Gets chunk containing block at (x, z). Returns NULL if it does not exist. */
 struct chunk* world_chunk_get(int x, int z);
+/* Cleans chunk at index in chunk list. */
 void world_chunk_clean_mesh(int index);
 
 #endif

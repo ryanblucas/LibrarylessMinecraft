@@ -10,23 +10,22 @@
 #include <stdio.h>
 #include <float.h>
 
+struct player_internal
+{
+	bool noclip_on;
+};
+
 void entity_player_init(entity_t* ent)
 {
 	/* Minecraft's player dimensions */
 	ent->hitbox = (aabb_t){ .max = { 0.6F, 1.8F, 0.6F } };
 	ent->hitbox = aabb_set_center(ent->hitbox, (vector3_t) { 8, 130, 8 });
+	ent->reserved = mc_malloc(sizeof(struct player_internal));
+	memset(ent->reserved, 0, sizeof(struct player_internal));
 }
 
-void entity_player_update(entity_t* ent, float delta)
+static void entity_player_move_standard(entity_t* ent, float delta)
 {
-	ent->prev_position = aabb_get_center(ent->hitbox);
-
-	if (window_input_down(INPUT_TELEPORT_TO_SPAWN))
-	{
-		ent->hitbox = aabb_set_center(ent->hitbox, (vector3_t) { 8, 130, 8 });
-		ent->velocity.y = 0.0F;
-	}
-
 	vector3_t forward = camera_forward(),
 		right = camera_right();
 	forward.y = 0.0F;
@@ -63,6 +62,43 @@ void entity_player_update(entity_t* ent, float delta)
 	}
 
 	entity_gravity_then_move(ent, delta);
+}
+
+static void entity_player_move_noclip(entity_t* ent, float delta)
+{
+	vector3_t desired = { 0 };
+	vector3_t forward = camera_forward(),
+		right = camera_right();
+	if (window_input_down(INPUT_FORWARD))
+	{
+		desired = vector3_add(desired, forward);
+	}
+	else if (window_input_down(INPUT_BACKWARD))
+	{
+		desired = vector3_sub(desired, forward);
+	}
+	if (window_input_down(INPUT_LEFT))
+	{
+		desired = vector3_add(desired, right);
+	}
+	else if (window_input_down(INPUT_RIGHT))
+	{
+		desired = vector3_sub(desired, right);
+	}
+	float speed = window_input_down(INPUT_SNEAK) ? 7.5F : 15.0F;
+	desired = vector3_mul_scalar(vector3_normalize(desired), delta * speed);
+	ent->hitbox = aabb_translate(ent->hitbox, desired);
+}
+
+void entity_player_update(entity_t* ent, float delta)
+{
+	ent->prev_position = aabb_get_center(ent->hitbox);
+
+	if (window_input_down(INPUT_TELEPORT_TO_SPAWN))
+	{
+		ent->hitbox = aabb_set_center(ent->hitbox, (vector3_t) { 8, 130, 8 });
+		ent->velocity.y = 0.0F;
+	}
 
 	static block_type_t to_place;
 	if (window_input_clicked(INPUT_CYCLE_BLOCK_FORWARD))
@@ -72,6 +108,21 @@ void entity_player_update(entity_t* ent, float delta)
 	else if (window_input_clicked(INPUT_CYCLE_BLOCK_BACKWARD))
 	{
 		to_place = (BLOCK_COUNT + to_place - 2) % (BLOCK_COUNT - 1);
+	}
+
+	struct player_internal* internal = ent->reserved;
+	if (window_input_clicked(INPUT_TOGGLE_NOCLIP))
+	{
+		internal->noclip_on = !internal->noclip_on;
+	}
+
+	if (internal->noclip_on)
+	{
+		entity_player_move_noclip(ent, delta);
+	}
+	else
+	{
+		entity_player_move_standard(ent, delta);
 	}
 
 	if (window_input_clicked(INPUT_BREAK_BLOCK))

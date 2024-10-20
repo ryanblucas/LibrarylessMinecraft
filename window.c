@@ -270,6 +270,7 @@ void window_input_update(void)
 	state[INPUT_CYCLE_BLOCK_BACKWARD] =	GetAsyncKeyState(VK_DOWN);
 	state[INPUT_QUEUE_BLOCK_INFO] =		GetAsyncKeyState(VK_MBUTTON);
 
+	state[INPUT_TOGGLE_NOCLIP] =		holding_ctrl && GetAsyncKeyState('N');
 	state[INPUT_TOGGLE_MOUSE_FOCUS] =	GetAsyncKeyState(VK_ESCAPE);
 	state[INPUT_TOGGLE_WIREFRAME] =		holding_ctrl && GetAsyncKeyState('W');
 }

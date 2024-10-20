@@ -31,6 +31,7 @@ struct vertex_buffer
 {
 	GLuint vao, vbo;
 	GLsizei size, reserved;
+	vertex_type_t type;
 };
 
 static shader_t current_shader;
@@ -51,7 +52,7 @@ static array_list_t primitives;
 void graphics_init(void)
 {
 	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
+	//glEnable(GL_CULL_FACE);
 	glCullFace(GL_FRONT);
 
 	line_shader = graphics_shader_load("assets/shaders/line_vertex.glsl", "assets/shaders/line_fragment.glsl");
@@ -59,6 +60,7 @@ void graphics_init(void)
 	glGenVertexArrays(1, &debug_buffer.vao);
 	glGenBuffers(1, &debug_buffer.vbo);
 	debug_buffer.reserved = 64 * 24;
+	debug_buffer.type = STANDARD_VERTEX;
 	primitives = mc_list_create(sizeof(struct debug_primitive));
 
 	glBindVertexArray(debug_buffer.vao);
@@ -198,7 +200,13 @@ static GLuint graphics_create_shader_component(const char* path, GLenum type)
 
 	GLint success;
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-	mc_panic_if(!success, "component compile failure");
+	if (!success)
+	{
+		char err[1024];
+		glGetShaderInfoLog(shader, 1024, NULL, err);
+		printf("%s\n", err);
+		mc_panic_if(true, "component compile failure");
+	}
 
 	ASSERT_NO_ERROR();
 	return shader;
@@ -309,36 +317,49 @@ static inline void graphics_buffer_bind(struct vertex_buffer* buf)
 	ASSERT_NO_ERROR();
 }
 
-vertex_buffer_t graphics_buffer_create(const vertex_t* start, size_t len)
+vertex_buffer_t graphics_buffer_create(const void* start, size_t len, vertex_type_t type)
 {
 	struct vertex_buffer* result = mc_malloc(sizeof * result);
 	glGenVertexArrays(1, &result->vao);
 	glGenBuffers(1, &result->vbo);
 	result->size = result->reserved = (GLsizei)len;
+	result->type = type;
 
 	graphics_buffer_bind(result);
 
-	glBufferData(GL_ARRAY_BUFFER, len * sizeof * start, start, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*)0);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*)(sizeof(float) * 3));
+	if (type == BLOCK_VERTEX)
+	{
+		glBufferData(GL_ARRAY_BUFFER, len * sizeof(block_vertex_t), start, GL_STATIC_DRAW);
+		glEnableVertexAttribArray(0);
+		glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, sizeof(block_vertex_t), (void*)0);
+	}
+	else if (type == STANDARD_VERTEX)
+	{
+		glBufferData(GL_ARRAY_BUFFER, len * sizeof(float), start, GL_STATIC_DRAW);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+	}
+	else
+	{
+		assert(false);
+	}
 
 	ASSERT_NO_ERROR();
 	return result;
 }
 
-void graphics_buffer_modify(vertex_buffer_t buffer, const vertex_t* buf, size_t len)
+void graphics_buffer_modify(vertex_buffer_t buffer, const void* buf, size_t len)
 {
+	size_t element_size = buffer->type == BLOCK_VERTEX ? sizeof(block_vertex_t) : (sizeof(float) * 3);
 	graphics_buffer_bind(buffer);
 	if (len > buffer->reserved)
 	{
-		glBufferData(GL_ARRAY_BUFFER, len * sizeof * buf, buf, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, len * element_size, buf, GL_STATIC_DRAW);
 		buffer->size = buffer->reserved = (GLsizei)len;
 		ASSERT_NO_ERROR();
 		return;
 	}
-	glBufferSubData(GL_ARRAY_BUFFER, 0, len * sizeof * buf, buf);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, len * element_size, buf);
 	buffer->size = (GLsizei)len;
 	ASSERT_NO_ERROR();
 }
@@ -423,7 +444,7 @@ void graphics_debug_set_line(vector3_t begin, vector3_t end)
 	float pts[] = { begin.x, begin.y, begin.z, end.x, end.y, end.z };
 	int buffer_pos = graphics_debug_add_primitive(2, mc_hash(pts, sizeof pts));
 	graphics_buffer_bind(&debug_buffer);
-	glBufferSubData(GL_ARRAY_BUFFER, buffer_pos, sizeof pts, pts);
+	glBufferSubData(GL_ARRAY_BUFFER, buffer_pos * sizeof(float) * 3, sizeof pts, pts);
 	ASSERT_NO_ERROR();
 }
 

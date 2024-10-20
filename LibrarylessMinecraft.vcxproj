@@ -132,9 +132,11 @@
     <ClCompile Include="entity.c" />
     <ClCompile Include="game.c" />
     <ClCompile Include="graphics.c" />
+    <ClCompile Include="perlin.c" />
     <ClCompile Include="util.c" />
     <ClCompile Include="window.c" />
     <ClCompile Include="world.c" />
+    <ClCompile Include="world_chunk.c" />
     <ClCompile Include="world_mesh.c" />
   </ItemGroup>
   <ItemGroup>
@@ -143,6 +145,7 @@
     <ClInclude Include="graphics.h" />
     <ClInclude Include="opengl.h" />
     <ClInclude Include="entity.h" />
+    <ClInclude Include="perlin.h" />
     <ClInclude Include="util.h" />
     <ClInclude Include="window.h" />
     <ClInclude Include="world.h" />

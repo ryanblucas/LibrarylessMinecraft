@@ -18,14 +18,27 @@ typedef int sampler_t;
 typedef struct shader* shader_t;
 
 typedef struct vertex_buffer* vertex_buffer_t;
-#pragma pack(push, 1)
-/* Raw vertex data, sent straight to the GPU */
+/* TO DO: Position can be 4-bits per element, add texture coords to position to determine which vertex is which in the cube. */
+/* TO DO: Height modifiers can probably also be 3-bits. */
+/* Raw block/chunk vertex data, sent straight to the GPU. First 10 bits are 5-bit position (XZ), Y is next at 8-bit,
+	next 2 bits are X and Y for texture coordinates and the next 8 bits designate which texture ID to use.
+	Next 4 bits are height modifiers for the block, usually for liquid */
+typedef uint32_t block_vertex_t;
+
 typedef struct vertex
 {
 	float x, y, z;
-	float tx, ty;
 } vertex_t;
-#pragma pack(pop)
+
+typedef enum vertex_type
+{
+	BLOCK_VERTEX,
+	STANDARD_VERTEX
+} vertex_type_t;
+
+#define CREATE_BLOCK_VERTEX_POS(x, y, z)			((x) | ((z) << 5) | ((y) << 10))
+#define CREATE_LIQUID_VERTEX_POS(x, y, z, mod)		(CREATE_BLOCK_VERTEX_POS(x, y, z) | ((mod) << 28))
+#define SET_BLOCK_VERTEX_TEXTURE(v, tx, ty, tid)	((v) | ((tx) << 18) | ((ty) << 19) | ((tid) << 20))
 
 /* Initializes graphics objects and state */
 void graphics_init(void);
@@ -53,10 +66,12 @@ void graphics_shader_use(shader_t shader);
 void graphics_shader_matrix(const char* name, const matrix_t mat4);
 
 /*	Creates vertex buffer. Start and len can both be 0, but if 
-	they aren't they specify the starting values for the buffer. */
-vertex_buffer_t graphics_buffer_create(const vertex_t* start, size_t len);
+	they aren't they specify the starting values for the buffer.
+	If type is BLOCK_VERTEX, start is a pointer to an array of block_vertex_t.
+	If type is STANDARD_VERTEX, start is a pointer to an array of vertex_t. */
+vertex_buffer_t graphics_buffer_create(const void* start, size_t len, vertex_type_t type);
 /* Modifies existing vertex buffer. */
-void graphics_buffer_modify(vertex_buffer_t buffer, const vertex_t* buf, size_t len);
+void graphics_buffer_modify(vertex_buffer_t buffer, const void* buf, size_t len);
 /* Deletes the vertex buffer and sets the pointer to NULL */
 void graphics_buffer_delete(vertex_buffer_t* buffer);
 /* Draws vertex buffer with current shader. */

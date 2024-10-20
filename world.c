@@ -8,74 +8,22 @@
 #include "entity.h"
 #include "graphics.h"
 
-#define ROUND_DOWN(c, m) (((c) < 0 ? -((-(c) - 1 + (m)) / (m)) : (c) / (m)) * (m))
-#define BUCKET_COUNT 32
-
-array_list_t chunk_list;
 static array_list_t update_list;
 static int ticks;
 
 entity_t player;
 
-struct chunk* world_chunk_create(int x_o, int z_o)
-{
-	int res = mc_list_add(chunk_list, mc_list_count(chunk_list), NULL, sizeof(struct chunk));
-	struct chunk* next = MC_LIST_CAST_GET(chunk_list, res, struct chunk);
-
-	next->x = ROUND_DOWN(x_o, CHUNK_WX);
-	next->z = ROUND_DOWN(z_o, CHUNK_WZ);
-	next->flowing_liquid = mc_list_create(sizeof(liquid_t));
-
-	for (int i = 0; i < CHUNK_FLOOR_BLOCK_COUNT; i++)
-	{
-		int x = CHUNK_X(i), z = CHUNK_Z(i);
-		for (int j = CHUNK_WY - 1; j >= 0; j--)
-		{
-			next->arr[CHUNK_INDEX_OF(x, j, z)] = BLOCK_AIR;
-		}
-		next->arr[CHUNK_INDEX_OF(x, 128, z)] = BLOCK_GRASS;
-		next->arr[CHUNK_INDEX_OF(x, 120, z)] = BLOCK_GRASS;
-	}
-	world_block_set((block_coords_t) { 8, 128, 8 }, BLOCK_AIR);
-	world_block_set((block_coords_t) { 8, 129, 8 }, BLOCK_WATER);
-	next->dirty_mask = OPAQUE_BIT;
-	next->opaque_buffer = graphics_buffer_create(NULL, 0);
-	next->liquid_buffer = graphics_buffer_create(NULL, 0);
-	return next;
-}
-
-struct chunk* world_chunk_get(int x, int z)
-{
-	x = ROUND_DOWN(x, CHUNK_WX);
-	z = ROUND_DOWN(z, CHUNK_WZ);
-	struct chunk* list = mc_list_array(chunk_list);
-	for (int i = 0; i < mc_list_count(chunk_list); i++)
-	{
-		if (list[i].x == x && list[i].z == z)
-		{
-			return &list[i];
-		}
-	}
-	return NULL;
-}
-
 void world_init(void)
 {
-	chunk_list = mc_list_create(sizeof(struct chunk));
 	update_list = mc_list_create(sizeof(block_coords_t));
+	world_chunk_init();
 
-	world_chunk_create(0, 0);
 	entity_player_init(&player);
 }
 
 void world_destroy(void)
 {
-	for (int i = 0; i < mc_list_count(chunk_list); i++)
-	{
-		graphics_buffer_delete(&MC_LIST_CAST_GET(chunk_list, i, struct chunk)->opaque_buffer);
-		graphics_buffer_delete(&MC_LIST_CAST_GET(chunk_list, i, struct chunk)->liquid_buffer);
-	}
-	mc_list_destroy(&chunk_list);
+	world_chunk_destroy();
 	mc_list_destroy(&update_list);
 }
 

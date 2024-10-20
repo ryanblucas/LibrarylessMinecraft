@@ -28,6 +28,7 @@ typedef struct entity
 	vector3_t rotation, velocity;
 	aabb_t hitbox;
 	bool grounded;
+	void* reserved;
 
 	vector3_t prev_position;
 } entity_t;
