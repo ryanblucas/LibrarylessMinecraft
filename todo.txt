@@ -1,5 +1,8 @@
 In order:
 	Fix liquid updating
+	Make liquid shader
+	Add graphics debug buffers, so instead of setting temporary primitives, you can store a
+		buffer of primitives. This is useful for things like visualizing chunk borders
 
 	Frustum culling
 	Health system

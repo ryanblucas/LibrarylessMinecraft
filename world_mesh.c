@@ -75,16 +75,16 @@ static struct vertex_array_list* world_mesh_quad(struct vertex_array_list* list,
 	{
 		/* -1 for air */
 		c = SET_BLOCK_VERTEX_TEXTURE(c, 0, 0, type - 1);
-		a = SET_BLOCK_VERTEX_TEXTURE(a, 1, 1, type - 1);
 		b = SET_BLOCK_VERTEX_TEXTURE(b, 1, 0, type - 1);
+		a = SET_BLOCK_VERTEX_TEXTURE(a, 1, 1, type - 1);
 		d = SET_BLOCK_VERTEX_TEXTURE(d, 0, 1, type - 1);
 	}
 	else
 	{
 		/* -1 for air */
 		a = SET_BLOCK_VERTEX_TEXTURE(a, 1, 0, type - 1);
-		c = SET_BLOCK_VERTEX_TEXTURE(c, 0, 1, type - 1);
 		b = SET_BLOCK_VERTEX_TEXTURE(b, 0, 0, type - 1);
+		c = SET_BLOCK_VERTEX_TEXTURE(c, 0, 1, type - 1);
 		d = SET_BLOCK_VERTEX_TEXTURE(d, 1, 1, type - 1);
 	}
 
@@ -111,6 +111,7 @@ static struct vertex_array_list* world_mesh_quad(struct vertex_array_list* list,
 static struct vertex_array_list* world_mesh_flowing_water(struct vertex_array_list* list, int mask, int strength, enum quad_normal normal)
 {
 	block_vertex_t a, b, c, d;
+	strength--;
 	switch (normal)
 	{
 	case LEFT:

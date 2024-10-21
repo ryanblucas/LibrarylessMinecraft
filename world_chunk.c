@@ -14,15 +14,13 @@ array_list_t chunk_list;
 void world_chunk_init(void)
 {
 	chunk_list = mc_list_create(sizeof(struct chunk));
-	world_chunk_create(0, 0);
-	/*
-	for (int x = -8; x <= 8; x++)
+	for (int y = -4; y < 4; y++)
 	{
-		for (int y = -8; y <= 8; y++)
+		for (int x = -4; x < 4; x++)
 		{
 			world_chunk_create(x * 16, y * 16);
 		}
-	}*/
+	}
 }
 
 void world_chunk_destroy(void)
@@ -40,13 +38,9 @@ struct chunk* world_chunk_create(int x_o, int z_o)
 	x_o = ROUND_DOWN(x_o, CHUNK_WX);
 	z_o = ROUND_DOWN(z_o, CHUNK_WZ);
 
-	for (int i = 0; i < mc_list_count(chunk_list); i++)
+	if (world_chunk_get(x_o, z_o))
 	{
-		struct chunk* curr = MC_LIST_CAST_GET(chunk_list, i, struct chunk);
-		if (curr->x == x_o && curr->z == z_o)
-		{
-			return curr;
-		}
+		return world_chunk_get(x_o, z_o);
 	}
 
 	int res = mc_list_add(chunk_list, mc_list_count(chunk_list), NULL, sizeof(struct chunk));
@@ -56,7 +50,8 @@ struct chunk* world_chunk_create(int x_o, int z_o)
 	next->z = z_o;
 	next->flowing_liquid = mc_list_create(sizeof(liquid_t));
 
-	/*
+	memset(next->arr, 0, sizeof next->arr);
+
 	for (int i = 0; i < CHUNK_FLOOR_BLOCK_COUNT; i++)
 	{
 		int slice_height = perlin_brownian_at(CHUNK_FX(i) + next->x, CHUNK_FZ(i) + next->z, 6, 1.0, 0.005) * 128.0;
@@ -71,10 +66,6 @@ struct chunk* world_chunk_create(int x_o, int z_o)
 			CHUNK_AT(next->arr, CHUNK_X(i), slice_height--, CHUNK_Z(i)) = BLOCK_STONE;
 		}
 	}
-	*/
-
-	memset(next->arr, 0, sizeof next->arr);
-	CHUNK_AT(next->arr, 7, 128, 7) = BLOCK_GRASS;
 
 	next->dirty_mask = OPAQUE_BIT;
 	next->opaque_buffer = graphics_buffer_create(NULL, 0, BLOCK_VERTEX);

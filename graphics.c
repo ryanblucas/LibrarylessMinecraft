@@ -52,7 +52,7 @@ static array_list_t primitives;
 void graphics_init(void)
 {
 	glEnable(GL_DEPTH_TEST);
-	//glEnable(GL_CULL_FACE);
+	glEnable(GL_CULL_FACE);
 	glCullFace(GL_FRONT);
 
 	line_shader = graphics_shader_load("assets/shaders/line_vertex.glsl", "assets/shaders/line_fragment.glsl");

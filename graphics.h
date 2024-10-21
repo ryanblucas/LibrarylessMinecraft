@@ -18,11 +18,9 @@ typedef int sampler_t;
 typedef struct shader* shader_t;
 
 typedef struct vertex_buffer* vertex_buffer_t;
-/* TO DO: Position can be 4-bits per element, add texture coords to position to determine which vertex is which in the cube. */
-/* TO DO: Height modifiers can probably also be 3-bits. */
-/* Raw block/chunk vertex data, sent straight to the GPU. First 10 bits are 5-bit position (XZ), Y is next at 8-bit,
+/* Raw block/chunk vertex data, sent straight to the GPU. First 10 bits are 5-bit position (XZ), Y is next at 9-bit,
 	next 2 bits are X and Y for texture coordinates and the next 8 bits designate which texture ID to use.
-	Next 4 bits are height modifiers for the block, usually for liquid */
+	Next 3 bits are height modifiers for the block, usually for liquid */
 typedef uint32_t block_vertex_t;
 
 typedef struct vertex
@@ -37,8 +35,8 @@ typedef enum vertex_type
 } vertex_type_t;
 
 #define CREATE_BLOCK_VERTEX_POS(x, y, z)			((x) | ((z) << 5) | ((y) << 10))
-#define CREATE_LIQUID_VERTEX_POS(x, y, z, mod)		(CREATE_BLOCK_VERTEX_POS(x, y, z) | ((mod) << 28))
-#define SET_BLOCK_VERTEX_TEXTURE(v, tx, ty, tid)	((v) | ((tx) << 18) | ((ty) << 19) | ((tid) << 20))
+#define CREATE_LIQUID_VERTEX_POS(x, y, z, mod)		(CREATE_BLOCK_VERTEX_POS(x, y, z) | ((mod) << 29))
+#define SET_BLOCK_VERTEX_TEXTURE(v, tx, ty, tid)	((v) | ((tx) << 19) | ((ty) << 20) | ((tid) << 21))
 
 /* Initializes graphics objects and state */
 void graphics_init(void);

@@ -25,8 +25,6 @@ pointi_t window_mouse_position(void);
 
 typedef enum input
 {
-	/* Add any new inputs to window_input_update */
-
 	INPUT_FORWARD,
 	INPUT_BACKWARD,
 	INPUT_LEFT,
@@ -45,6 +43,7 @@ typedef enum input
 	INPUT_TOGGLE_NOCLIP,
 	INPUT_TOGGLE_MOUSE_FOCUS,
 	INPUT_TOGGLE_WIREFRAME,
+	INPUT_TOGGLE_CHUNK_BORDERS,
 
 	INPUT_COUNT
 } input_t;
@@ -53,5 +52,6 @@ typedef enum input
 void window_input_update(void);
 /* Is the key currently pressed? */
 bool window_input_down(input_t input);
-/* Is the key clicked? Note: This is true when the frame before has this down and this frame has it up. */
+/* Is the key clicked? Note: This is true when the tick before has this down and this tick has it up.
+	So, if you call this in a render function, the results may be unpredictable. */
 bool window_input_clicked(input_t input);

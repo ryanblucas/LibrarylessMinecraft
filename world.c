@@ -7,6 +7,7 @@
 #include <assert.h>
 #include "entity.h"
 #include "graphics.h"
+#include "window.h"
 
 static array_list_t update_list;
 static int ticks;
@@ -430,6 +431,25 @@ void world_update(float delta)
 			if (aabb_collides_aabb(world_liquid_to_aabb(*curr), player.hitbox))
 			{
 				entity_move(&player, vector3_mul_scalar(curr->push, delta));
+			}
+		}
+	}
+
+	static bool chunk_borders;
+	if (window_input_clicked(INPUT_TOGGLE_CHUNK_BORDERS))
+	{
+		chunk_borders = !chunk_borders;
+		graphics_debug_clear();
+	}
+
+	for (int i = 0; i < mc_list_count(chunk_list); i++)
+	{
+		struct chunk* chunk = MC_LIST_CAST_GET(chunk_list, i, struct chunk);
+		if (chunk_borders)
+		{
+			for (int i = CHUNK_WY / 16 - 1; i >= 0; i--)
+			{
+				graphics_debug_set_cube((vector3_t) { chunk->x, i * 16, chunk->z }, (vector3_t) { CHUNK_WX, 16, CHUNK_WZ });
 			}
 		}
 	}

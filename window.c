@@ -273,6 +273,7 @@ void window_input_update(void)
 	state[INPUT_TOGGLE_NOCLIP] =		holding_ctrl && GetAsyncKeyState('N');
 	state[INPUT_TOGGLE_MOUSE_FOCUS] =	GetAsyncKeyState(VK_ESCAPE);
 	state[INPUT_TOGGLE_WIREFRAME] =		holding_ctrl && GetAsyncKeyState('W');
+	state[INPUT_TOGGLE_CHUNK_BORDERS] = holding_ctrl && GetAsyncKeyState('C');
 }
 
 bool window_input_down(input_t input)

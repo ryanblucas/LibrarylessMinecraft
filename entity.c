@@ -118,6 +118,7 @@ void entity_player_update(entity_t* ent, float delta)
 
 	if (internal->noclip_on)
 	{
+		ent->velocity.y = 0.0F;
 		entity_player_move_noclip(ent, delta);
 	}
 	else
