@@ -6,6 +6,7 @@
 #define WORLD_INTERNAL
 #include "world.h"
 #include "perlin.h"
+#include "window.h"
 
 #define ROUND_DOWN(c, m) (((c) < 0 ? -((-(c) - 1 + (m)) / (m)) : (c) / (m)) * (m))
 
@@ -14,9 +15,9 @@ array_list_t chunk_list;
 void world_chunk_init(void)
 {
 	chunk_list = mc_list_create(sizeof(struct chunk));
-	for (int y = -4; y < 4; y++)
+	for (int y = -8; y < 8; y++)
 	{
-		for (int x = -4; x < 4; x++)
+		for (int x = -8; x < 8; x++)
 		{
 			world_chunk_create(x * 16, y * 16);
 		}

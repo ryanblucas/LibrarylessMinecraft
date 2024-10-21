@@ -6,6 +6,7 @@
 #define WORLD_INTERNAL
 #include "world.h"
 #include <assert.h>
+#include <xmmintrin.h>
 
 enum quad_normal
 {
@@ -19,13 +20,26 @@ enum quad_normal
 	FLIPPED_BIT = 0b100
 };
 
-struct vertex_array_list
+static struct vertex_array_list
 {
 	size_t reserved, count;
 	block_vertex_t array[];
-};
+} *list;
 
-static struct vertex_array_list* world_mesh_quad(struct vertex_array_list* list, int mask, block_type_t type, enum quad_normal normal)
+static inline void world_mesh_check_realloc(void)
+{
+	if (list->count + 6 >= list->reserved)
+	{
+		size_t old_size = sizeof * list + sizeof * list->array * list->reserved;
+		struct vertex_array_list* prev = list;
+		list = mc_malloc(old_size + sizeof * list->array * list->reserved);
+		memcpy(list, prev, old_size);
+		list->reserved *= 2;
+		free(prev);
+	}
+}
+
+static void world_mesh_quad(int mask, int type, enum quad_normal normal)
 {
 	block_vertex_t a, b, c, d;
 	switch (normal)
@@ -73,42 +87,34 @@ static struct vertex_array_list* world_mesh_quad(struct vertex_array_list* list,
 
 	if (normal & FLIPPED_BIT)
 	{
-		/* -1 for air */
-		c = SET_BLOCK_VERTEX_TEXTURE(c, 0, 0, type - 1);
-		b = SET_BLOCK_VERTEX_TEXTURE(b, 1, 0, type - 1);
-		a = SET_BLOCK_VERTEX_TEXTURE(a, 1, 1, type - 1);
-		d = SET_BLOCK_VERTEX_TEXTURE(d, 0, 1, type - 1);
+		c = SET_BLOCK_VERTEX_TEXTURE(c, 0, 0, type);
+		b = SET_BLOCK_VERTEX_TEXTURE(b, 1, 0, type);
+		a = SET_BLOCK_VERTEX_TEXTURE(a, 1, 1, type);
+		d = SET_BLOCK_VERTEX_TEXTURE(d, 0, 1, type);
 	}
 	else
 	{
-		/* -1 for air */
-		a = SET_BLOCK_VERTEX_TEXTURE(a, 1, 0, type - 1);
-		b = SET_BLOCK_VERTEX_TEXTURE(b, 0, 0, type - 1);
-		c = SET_BLOCK_VERTEX_TEXTURE(c, 0, 1, type - 1);
-		d = SET_BLOCK_VERTEX_TEXTURE(d, 1, 1, type - 1);
+		a = SET_BLOCK_VERTEX_TEXTURE(a, 1, 0, type);
+		b = SET_BLOCK_VERTEX_TEXTURE(b, 0, 0, type);
+		c = SET_BLOCK_VERTEX_TEXTURE(c, 0, 1, type);
+		d = SET_BLOCK_VERTEX_TEXTURE(d, 1, 1, type);
 	}
 
-	list->array[list->count++] = a;
-	list->array[list->count++] = b;
-	list->array[list->count++] = c;
-	list->array[list->count++] = c;
-	list->array[list->count++] = d;
-	list->array[list->count++] = a;
+	size_t curr = list->count;
+	list->count += 6;
+	list->array[curr + 0] = a;
+	list->array[curr + 1] = b;
+	list->array[curr + 2] = c;
+	list->array[curr + 3] = c;
+	list->array[curr + 4] = d;
+	list->array[curr + 5] = a;
 
-	if (list->count + 6 >= list->reserved) /* +6 for next quad */
-	{
-		size_t old_size = sizeof * list + sizeof * list->array * list->reserved;
-		list->reserved *= 2;
-		struct vertex_array_list* prev = list;
-		list = mc_malloc(old_size + sizeof * list->array * list->reserved);
-		memcpy(list, prev, old_size);
-		free(prev);
-	}
+	world_mesh_check_realloc();
 
 	return list;
 }
 
-static struct vertex_array_list* world_mesh_flowing_water(struct vertex_array_list* list, int mask, int strength, enum quad_normal normal)
+static void world_mesh_flowing_water(int mask, int strength, enum quad_normal normal)
 {
 	block_vertex_t a, b, c, d;
 	strength--;
@@ -172,27 +178,21 @@ static struct vertex_array_list* world_mesh_flowing_water(struct vertex_array_li
 		d = SET_BLOCK_VERTEX_TEXTURE(d, 1, 1, BLOCK_WATER - 1);
 	}
 
-	list->array[list->count++] = a;
-	list->array[list->count++] = b;
-	list->array[list->count++] = c;
-	list->array[list->count++] = c;
-	list->array[list->count++] = d;
-	list->array[list->count++] = a;
+	size_t curr = list->count;
+	list->count += 6;
+	list->array[curr + 0] = a;
+	list->array[curr + 1] = b;
+	list->array[curr + 2] = c;
+	list->array[curr + 3] = c;
+	list->array[curr + 4] = d;
+	list->array[curr + 5] = a;
 
-	if (list->count + 6 >= list->reserved) /* +6 for next quad */
-	{
-		size_t old_size = sizeof * list + sizeof * list->array * list->reserved;
-		list->reserved *= 2;
-		struct vertex_array_list* prev = list;
-		list = mc_malloc(old_size + sizeof * list->array * list->reserved);
-		memcpy(list, prev, old_size);
-		free(prev);
-	}
+	world_mesh_check_realloc();
 
 	return list;
 }
 
-static struct vertex_array_list* world_chunk_clean_opaque(struct vertex_array_list* val, struct chunk* chunk)
+static void world_chunk_clean_opaque(struct chunk* chunk)
 {
 	/* TO DO: Now that this function has access to all chunks, it can exclude block faces that are touching other chunks' block faces. */
 
@@ -204,57 +204,56 @@ static struct vertex_array_list* world_chunk_clean_opaque(struct vertex_array_li
 		{
 			continue;
 		}
+		curr--;
 		if (x == 0 || !IS_SOLID(CHUNK_AT(chunk->arr, x - 1, y, z)))
 		{
-			val = world_mesh_quad(val, mask, curr, LEFT);
+			world_mesh_quad(mask, curr, LEFT);
 		}
 		if (x == CHUNK_WX - 1 || !IS_SOLID(CHUNK_AT(chunk->arr, x + 1, y, z)))
 		{
-			val = world_mesh_quad(val, mask, curr, RIGHT);
+			world_mesh_quad(mask, curr, RIGHT);
 		}
 		if (y == 0 || !IS_SOLID(CHUNK_AT(chunk->arr, x, y - 1, z)))
 		{
-			val = world_mesh_quad(val, mask, curr, UP);
+			world_mesh_quad(mask, curr, UP);
 		}
 		if (y == CHUNK_WY - 1 || !IS_SOLID(CHUNK_AT(chunk->arr, x, y + 1, z)))
 		{
-			val = world_mesh_quad(val, mask, curr, DOWN);
+			world_mesh_quad(mask, curr, DOWN);
 		}
 		if (z == 0 || !IS_SOLID(CHUNK_AT(chunk->arr, x, y, z - 1)))
 		{
-			val = world_mesh_quad(val, mask, curr, BACKWARD);
+			world_mesh_quad(mask, curr, BACKWARD);
 		}
 		if (z == CHUNK_WZ - 1 || !IS_SOLID(CHUNK_AT(chunk->arr, x, y, z + 1)))
 		{
-			val = world_mesh_quad(val, mask, curr, FORWARD);
+			world_mesh_quad(mask, curr, FORWARD);
 		}
 	}
 
-	graphics_buffer_modify(chunk->opaque_buffer, val->array, val->count);
-	val->count = 0;
+	graphics_buffer_modify(chunk->opaque_buffer, list->array, list->count);
+	list->count = 0;
 	chunk->dirty_mask ^= OPAQUE_BIT;
-	return val;
 }
 
-static struct vertex_array_list* world_chunk_clean_liquid(struct vertex_array_list* val, struct chunk* chunk)
+static void world_chunk_clean_liquid(struct chunk* chunk)
 {
 	for (int i = 0; i < mc_list_count(chunk->flowing_liquid); i++)
 	{
 		struct liquid* liquid = MC_LIST_CAST_GET(chunk->flowing_liquid, i, struct liquid);
 		int mask = CHUNK_INDEX_OF(liquid->position.x - chunk->x, liquid->position.y, liquid->position.z - chunk->z);
 		int strength = liquid->came_from_above ? 8 : liquid->strength;
-		val = world_mesh_flowing_water(val, mask, strength, LEFT);
-		val = world_mesh_flowing_water(val, mask, strength, RIGHT);
-		val = world_mesh_flowing_water(val, mask, strength, BACKWARD);
-		val = world_mesh_flowing_water(val, mask, strength, FORWARD);
-		val = world_mesh_flowing_water(val, mask, strength, UP);
-		val = world_mesh_flowing_water(val, mask, strength, DOWN);
+		world_mesh_flowing_water(mask, strength, LEFT);
+		world_mesh_flowing_water(mask, strength, RIGHT);
+		world_mesh_flowing_water(mask, strength, BACKWARD);
+		world_mesh_flowing_water(mask, strength, FORWARD);
+		world_mesh_flowing_water(mask, strength, UP);
+		world_mesh_flowing_water(mask, strength, DOWN);
 	}
 
-	graphics_buffer_modify(chunk->liquid_buffer, val->array, val->count);
-	val->count = 0;
+	graphics_buffer_modify(chunk->liquid_buffer, list->array, list->count);
+	list->count = 0;
 	chunk->dirty_mask ^= LIQUID_BIT;
-	return val;
 }
 
 void world_chunk_clean_mesh(int index)
@@ -262,21 +261,20 @@ void world_chunk_clean_mesh(int index)
 	/*	This is NOT a greedy mesher. That's because texture wrapping is impossible with texture atlases, but using
 		texture arrays with a greedy mesher fixes that problem AND the mipmapping problem. Just a thought, TO DO */
 
-	static struct vertex_array_list* val;
-	if (!val)
+	if (!list)
 	{
-		val = mc_malloc(sizeof * val + sizeof * val->array * 36);
-		val->reserved = 36;
-		val->count = 0;
+		list = mc_malloc(sizeof * list + sizeof * list->array * 36);
+		list->reserved = 36;
+		list->count = 0;
 	}
 
 	struct chunk* chunk = MC_LIST_CAST_GET(chunk_list, index, struct chunk);
 	if (chunk->dirty_mask & OPAQUE_BIT)
 	{
-		val = world_chunk_clean_opaque(val, chunk);
+		world_chunk_clean_opaque(chunk);
 	}
 	if (chunk->dirty_mask & LIQUID_BIT)
 	{
-		val = world_chunk_clean_liquid(val, chunk);
+		world_chunk_clean_liquid(chunk);
 	}
 }
