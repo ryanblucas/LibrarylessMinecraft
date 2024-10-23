@@ -148,21 +148,28 @@ void entity_player_update(entity_t* ent, float delta)
 }
 
 #define MOVEMENT_EPSILON	0.01F
+#define MOVEMENT_MAX_LENGTH	0.7F
 
 collision_face_t entity_move(entity_t* ent, vector3_t addend)
 {
+	if (vector3_magnitude(addend) > MOVEMENT_MAX_LENGTH)
+	{
+		collision_face_t res = 0;
+		int iter_cnt = (int)(vector3_magnitude(addend) / MOVEMENT_MAX_LENGTH + 1.0F);
+		addend = vector3_div_scalar(addend, iter_cnt);
+		for (int i = 0; i < iter_cnt; i++)
+		{
+			res |= entity_move(ent, addend);
+		}
+		return res;
+	}
+
 	aabb_t arr[0x100];
 	int len = world_region_aabb(
 		/* It is crucial that there is a 2x2x2 slack to the hitbox. */
 		vector_to_block_coords(vector3_sub_scalar(ent->hitbox.min, 1.0F)),
 		vector_to_block_coords(vector3_add_scalar(ent->hitbox.max, 1.0F)),
 		arr, sizeof arr / sizeof * arr);
-
-	graphics_debug_clear();
-	for (int i = 0; i < len; i++)
-	{
-		GRAPHICS_DEBUG_SET_AABB(arr[i]);
-	}
 
 	vector3_uarray_t uvelocity = { addend };
 	collision_face_t res = 0;

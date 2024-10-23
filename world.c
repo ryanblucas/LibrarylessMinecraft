@@ -470,7 +470,7 @@ void world_render(float delta)
 
 		/* Two transforms being generated is temporary. When a real water shader is made, this isn't needed */
 		matrix_t transform;
-		matrix_translation((vector3_t) { (float)chunk->x, -1.0F, (float)chunk->z }, transform);
+		matrix_translation((vector3_t) { (float)chunk->x, -0.125F, (float)chunk->z }, transform);
 		graphics_shader_matrix("model", transform);
 		graphics_buffer_draw(chunk->opaque_buffer);
 

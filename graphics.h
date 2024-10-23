@@ -34,7 +34,7 @@ typedef enum vertex_type
 	STANDARD_VERTEX
 } vertex_type_t;
 
-#define CREATE_BLOCK_VERTEX_POS(x, y, z)			((x) | ((z) << 5) | ((y) << 10) | (7 << 29))
+#define CREATE_BLOCK_VERTEX_POS(x, y, z)			((x) | ((z) << 5) | ((y) << 10))
 #define CREATE_LIQUID_VERTEX_POS(x, y, z, mod)		(CREATE_BLOCK_VERTEX_POS(x, y, z) | ((mod) << 29))
 #define SET_BLOCK_VERTEX_TEXTURE(v, tx, ty, tid)	((v) | ((tx) << 19) | ((ty) << 20) | ((tid) << 21))
 
