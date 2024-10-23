@@ -166,9 +166,8 @@ collision_face_t entity_move(entity_t* ent, vector3_t addend)
 
 	aabb_t arr[0x100];
 	int len = world_region_aabb(
-		/* It is crucial that there is a 2x2x2 slack to the hitbox. */
-		vector_to_block_coords(vector3_sub_scalar(ent->hitbox.min, 1.0F)),
-		vector_to_block_coords(vector3_add_scalar(ent->hitbox.max, 1.0F)),
+		vector_to_block_coords(vector3_sub_scalar(ent->hitbox.min, 2.0F)),
+		vector_to_block_coords(vector3_add_scalar(ent->hitbox.max, 2.0F)),
 		arr, sizeof arr / sizeof * arr);
 
 	vector3_uarray_t uvelocity = { addend };

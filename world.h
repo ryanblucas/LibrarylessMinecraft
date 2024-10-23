@@ -92,7 +92,7 @@ block_coords_t world_ray_neighbor(ray_t ray);
 /* Loops through region and calls "callback" on each block */
 void world_region_loop(block_coords_t min, block_coords_t max, world_loop_callback_t callback, void* user);
 /* Sets contents of arr to a region's blocks -> AABBs. Returns the amount of blocks in the region. Writes to arr until arr no longer has space. */
-int world_region_aabb(block_coords_t min, block_coords_t max, aabb_t* arr, size_t arr_len);
+int world_region_aabb(block_coords_t min, block_coords_t max, aabb_t* arr, int arr_len);
 
 /* Converts a liquid to an AABB */
 aabb_t world_liquid_to_aabb(liquid_t liquid);

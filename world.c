@@ -154,13 +154,14 @@ void world_region_loop(block_coords_t _min, block_coords_t _max, world_loop_call
 	}
 }
 
-int world_region_aabb(block_coords_t _min, block_coords_t _max, aabb_t* arr, size_t arr_len)
+int world_region_aabb(block_coords_t _min, block_coords_t _max, aabb_t* arr, int arr_len)
 {
 	vector3_t v_min = block_coords_to_vector(_min),
 		v_max = block_coords_to_vector(_max);
 	_min = vector_to_block_coords(vector3_min(v_min, v_max));
 	_max = vector_to_block_coords(vector3_max(v_min, v_max));
 
+	graphics_debug_clear();
 	block_coords_t curr;
 	int curr_i = 0;
 	for (curr.z = _min.z; curr.z <= _max.z; curr.z++)
@@ -169,7 +170,12 @@ int world_region_aabb(block_coords_t _min, block_coords_t _max, aabb_t* arr, siz
 		{
 			for (curr.x = _min.x; curr.x <= _max.x; curr.x++)
 			{
-				if (curr_i >= arr_len || !IS_SOLID(world_block_get(curr)))
+				if (curr_i >= arr_len)
+				{
+					break;
+				}
+				GRAPHICS_DEBUG_SET_BLOCK(curr);
+				if (!IS_SOLID(world_block_get(curr)))
 				{
 					continue;
 				}
@@ -431,8 +437,18 @@ void world_block_debug(block_coords_t coords, FILE* stream)
 		push = liquid->push;
 	}
 
-	fprintf(stream, "(%i, %i, %i) - Block name \"%s,\" block id: %i. Liquid strength: %i, liquid push: (%f, %f, %f)\n", 
-		coords.x, coords.y, coords.z, name, id, world_liquid_strength(coords), push.x, push.y, push.z);
+	struct chunk* chunk = world_chunk_get(coords.x, coords.z);
+	int i;
+	for (i = 0; i < mc_list_count(chunk_list); i++)
+	{
+		if (chunk == MC_LIST_CAST_GET(chunk_list, i, struct chunk))
+		{
+			break;
+		}
+	}
+
+	fprintf(stream, "(%i, %i, %i), chunk %i (%i, %i). Block name \"%s,\" block id: %i. Liquid strength: %i, liquid push: (%f, %f, %f)\n", 
+		coords.x, coords.y, coords.z, i, chunk->x, chunk->z, name, id, world_liquid_strength(coords), push.x, push.y, push.z);
 }
 
 void world_update(float delta)
