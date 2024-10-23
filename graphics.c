@@ -40,6 +40,7 @@ static sampler_t current_sampler;
 
 static shader_t line_shader;
 static struct vertex_buffer debug_buffer;
+static array_list_t user_debug_buffers;
 
 struct debug_primitive
 {
@@ -71,11 +72,14 @@ void graphics_init(void)
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
 	ASSERT_NO_ERROR();
+
+	user_debug_buffers = mc_list_create(sizeof(vertex_buffer_t));
 }
 
 void graphics_destroy(void)
 {
 	mc_list_destroy(&primitives);
+	mc_list_destroy(&user_debug_buffers);
 	graphics_shader_delete(&line_shader);
 	glDeleteBuffers(1, &debug_buffer.vbo);
 	glDeleteVertexArrays(1, &debug_buffer.vao);
@@ -317,7 +321,7 @@ static inline void graphics_buffer_bind(struct vertex_buffer* buf)
 	ASSERT_NO_ERROR();
 }
 
-vertex_buffer_t graphics_buffer_create(const void* start, size_t len, vertex_type_t type)
+vertex_buffer_t graphics_buffer_create(const void* start, int len, vertex_type_t type)
 {
 	struct vertex_buffer* result = mc_malloc(sizeof * result);
 	glGenVertexArrays(1, &result->vao);
@@ -335,7 +339,7 @@ vertex_buffer_t graphics_buffer_create(const void* start, size_t len, vertex_typ
 	}
 	else if (type == STANDARD_VERTEX)
 	{
-		glBufferData(GL_ARRAY_BUFFER, len * sizeof(float), start, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, len * sizeof(vertex_t), start, GL_STATIC_DRAW);
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
 	}
@@ -448,7 +452,7 @@ void graphics_debug_set_line(vector3_t begin, vector3_t end)
 	ASSERT_NO_ERROR();
 }
 
-void graphics_debug_set_cube(vector3_t pos, vector3_t dim)
+void graphics_primitive_cube(vector3_t pos, vector3_t dim, vertex_t out[24])
 {
 	float pts[] =
 	{
@@ -477,6 +481,14 @@ void graphics_debug_set_cube(vector3_t pos, vector3_t dim)
 		pos.x + dim.x, pos.y + dim.y, pos.z,
 		pos.x + dim.x, pos.y + dim.y, pos.z + dim.z,
 	};
+
+	memcpy(out, pts, sizeof pts);
+}
+
+void graphics_debug_set_cube(vector3_t pos, vector3_t dim)
+{
+	float pts[72];
+	graphics_primitive_cube(pos, dim, (vertex_t*)pts);
 	int buffer_pos = graphics_debug_add_primitive(24, mc_hash(pts, sizeof pts));
 	graphics_buffer_bind(&debug_buffer);
 	glBufferSubData(GL_ARRAY_BUFFER, buffer_pos * sizeof(float) * 3, sizeof pts, pts);
@@ -506,15 +518,22 @@ void graphics_debug_draw(void)
 	mc_panic_if(!us || us->type != GL_INT, "invalid debug shader");
 	glUniform1i(us->location, COLOR_CREATE(255, 255, 255));
 
-	if (mc_list_count(primitives) <= 0)
+	if (mc_list_count(primitives) > 0)
 	{
-		return;
+		struct debug_primitive* first = MC_LIST_CAST_GET(primitives, 0, struct debug_primitive),
+			* last = MC_LIST_CAST_GET(primitives, mc_list_count(primitives) - 1, struct debug_primitive);
+		int start = first->start, count = last->start + last->size - first->start;
+		glDrawArrays(GL_LINES, start, count);
 	}
-
-	struct debug_primitive* first = MC_LIST_CAST_GET(primitives, 0, struct debug_primitive),
-		*last = MC_LIST_CAST_GET(primitives, mc_list_count(primitives) - 1, struct debug_primitive);
-	int start = first->start, count = last->start + last->size - first->start;
-	glDrawArrays(GL_LINES, start, count);
+	
+	for (int i = 0; i < mc_list_count(user_debug_buffers); i++)
+	{
+		vertex_buffer_t curr = *MC_LIST_CAST_GET(user_debug_buffers, i, vertex_buffer_t);
+		graphics_buffer_bind(curr);
+		glDrawArrays(GL_LINES, 0, curr->size);
+	}
+	mc_list_splice(user_debug_buffers, 0, mc_list_count(user_debug_buffers));
+	
 	ASSERT_NO_ERROR();
 
 	for (int i = mc_list_count(primitives) - 1; i >= 0; i--)
@@ -524,4 +543,9 @@ void graphics_debug_draw(void)
 			mc_list_remove(primitives, i, NULL, 0);
 		}
 	}
+}
+
+void graphics_debug_draw_buffer(vertex_buffer_t buffer)
+{
+	mc_list_add(user_debug_buffers, mc_list_count(user_debug_buffers), &buffer, sizeof buffer);
 }

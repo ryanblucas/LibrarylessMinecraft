@@ -3,6 +3,7 @@ In order:
 	Make liquid shader
 	Add graphics debug buffers, so instead of setting temporary primitives, you can store a
 		buffer of primitives. This is useful for things like visualizing chunk borders
+	Further speed up meshing chunks and generating them
 
 	Frustum culling
 	Health system

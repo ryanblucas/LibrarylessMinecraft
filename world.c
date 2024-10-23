@@ -12,20 +12,38 @@
 static array_list_t update_list;
 static int ticks;
 
+static vertex_buffer_t debug_chunk_border;
+static bool display_debug_chunk_border;
+
 entity_t player;
 
 void world_init(void)
 {
 	update_list = mc_list_create(sizeof(block_coords_t));
 	world_chunk_init();
-
 	entity_player_init(&player);
+
+	array_list_t vertices = mc_list_create(sizeof(vertex_t));
+	for (int i = 0; i < mc_list_count(chunk_list); i++)
+	{
+		struct chunk* chunk = MC_LIST_CAST_GET(chunk_list, i, struct chunk);
+		for (int j = 0; j < CHUNK_WY; j += 16)
+		{
+			vertex_t to_add[24];
+			graphics_primitive_cube((vector3_t) { (float)chunk->x, (float)j, (float)chunk->z }, (vector3_t) { 16, 16, 16 }, to_add);
+			mc_list_array_add(vertices, mc_list_count(vertices), to_add, sizeof * to_add, 24);
+		}
+	}
+
+	debug_chunk_border = graphics_buffer_create(mc_list_array(vertices), mc_list_count(vertices), STANDARD_VERTEX);
+	mc_list_destroy(&vertices);
 }
 
 void world_destroy(void)
 {
 	world_chunk_destroy();
 	mc_list_destroy(&update_list);
+	graphics_buffer_delete(&debug_chunk_border);
 }
 
 struct ray_state
@@ -435,23 +453,9 @@ void world_update(float delta)
 		}
 	}
 
-	static bool chunk_borders;
 	if (window_input_clicked(INPUT_TOGGLE_CHUNK_BORDERS))
 	{
-		chunk_borders = !chunk_borders;
-		graphics_debug_clear();
-	}
-
-	for (int i = 0; i < mc_list_count(chunk_list); i++)
-	{
-		struct chunk* chunk = MC_LIST_CAST_GET(chunk_list, i, struct chunk);
-		if (chunk_borders)
-		{
-			for (int i = CHUNK_WY / 16 - 1; i >= 0; i--)
-			{
-				graphics_debug_set_cube((vector3_t) { chunk->x, i * 16, chunk->z }, (vector3_t) { CHUNK_WX, 16, CHUNK_WZ });
-			}
-		}
+		display_debug_chunk_border = !display_debug_chunk_border;
 	}
 
 	ticks++;
@@ -464,11 +468,19 @@ void world_render(float delta)
 		struct chunk* chunk = MC_LIST_CAST_GET(chunk_list, i, struct chunk);
 		world_chunk_clean_mesh(i);
 
+		/* Two transforms being generated is temporary. When a real water shader is made, this isn't needed */
 		matrix_t transform;
+		matrix_translation((vector3_t) { (float)chunk->x, -1.0F, (float)chunk->z }, transform);
+		graphics_shader_matrix("model", transform);
+		graphics_buffer_draw(chunk->opaque_buffer);
+
 		matrix_translation((vector3_t) { (float)chunk->x, 0.0F, (float)chunk->z }, transform);
 		graphics_shader_matrix("model", transform);
-
-		graphics_buffer_draw(chunk->opaque_buffer);
 		graphics_buffer_draw(chunk->liquid_buffer);
+	}
+
+	if (display_debug_chunk_border)
+	{
+		graphics_debug_draw_buffer(debug_chunk_border);
 	}
 }

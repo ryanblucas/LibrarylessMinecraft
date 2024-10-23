@@ -158,6 +158,12 @@ collision_face_t entity_move(entity_t* ent, vector3_t addend)
 		vector_to_block_coords(vector3_add_scalar(ent->hitbox.max, 1.0F)),
 		arr, sizeof arr / sizeof * arr);
 
+	graphics_debug_clear();
+	for (int i = 0; i < len; i++)
+	{
+		GRAPHICS_DEBUG_SET_AABB(arr[i]);
+	}
+
 	vector3_uarray_t uvelocity = { addend };
 	collision_face_t res = 0;
 	for (int i = 0; i < 3; i++)

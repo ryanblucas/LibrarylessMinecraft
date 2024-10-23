@@ -6,7 +6,6 @@
 #define WORLD_INTERNAL
 #include "world.h"
 #include "perlin.h"
-#include "window.h"
 
 #define ROUND_DOWN(c, m) (((c) < 0 ? -((-(c) - 1 + (m)) / (m)) : (c) / (m)) * (m))
 

@@ -6,7 +6,6 @@
 #define WORLD_INTERNAL
 #include "world.h"
 #include <assert.h>
-#include <xmmintrin.h>
 
 enum quad_normal
 {
@@ -26,8 +25,32 @@ static struct vertex_array_list
 	block_vertex_t array[];
 } *list;
 
-static inline void world_mesh_check_realloc(void)
+static inline void world_mesh_finalize_quad(int type, enum quad_normal normal, block_vertex_t a, block_vertex_t b, block_vertex_t c, block_vertex_t d)
 {
+	if (normal & FLIPPED_BIT)
+	{
+		c = SET_BLOCK_VERTEX_TEXTURE(c, 0, 0, type);
+		b = SET_BLOCK_VERTEX_TEXTURE(b, 1, 0, type);
+		a = SET_BLOCK_VERTEX_TEXTURE(a, 1, 1, type);
+		d = SET_BLOCK_VERTEX_TEXTURE(d, 0, 1, type);
+	}
+	else
+	{
+		a = SET_BLOCK_VERTEX_TEXTURE(a, 1, 0, type);
+		b = SET_BLOCK_VERTEX_TEXTURE(b, 0, 0, type);
+		c = SET_BLOCK_VERTEX_TEXTURE(c, 0, 1, type);
+		d = SET_BLOCK_VERTEX_TEXTURE(d, 1, 1, type);
+	}
+
+	size_t curr = list->count;
+	list->count += 6;
+	list->array[curr + 0] = a;
+	list->array[curr + 1] = b;
+	list->array[curr + 2] = c;
+	list->array[curr + 3] = c;
+	list->array[curr + 4] = d;
+	list->array[curr + 5] = a;
+
 	if (list->count + 6 >= list->reserved)
 	{
 		size_t old_size = sizeof * list + sizeof * list->array * list->reserved;
@@ -85,33 +108,7 @@ static void world_mesh_quad(int mask, int type, enum quad_normal normal)
 		break;
 	}
 
-	if (normal & FLIPPED_BIT)
-	{
-		c = SET_BLOCK_VERTEX_TEXTURE(c, 0, 0, type);
-		b = SET_BLOCK_VERTEX_TEXTURE(b, 1, 0, type);
-		a = SET_BLOCK_VERTEX_TEXTURE(a, 1, 1, type);
-		d = SET_BLOCK_VERTEX_TEXTURE(d, 0, 1, type);
-	}
-	else
-	{
-		a = SET_BLOCK_VERTEX_TEXTURE(a, 1, 0, type);
-		b = SET_BLOCK_VERTEX_TEXTURE(b, 0, 0, type);
-		c = SET_BLOCK_VERTEX_TEXTURE(c, 0, 1, type);
-		d = SET_BLOCK_VERTEX_TEXTURE(d, 1, 1, type);
-	}
-
-	size_t curr = list->count;
-	list->count += 6;
-	list->array[curr + 0] = a;
-	list->array[curr + 1] = b;
-	list->array[curr + 2] = c;
-	list->array[curr + 3] = c;
-	list->array[curr + 4] = d;
-	list->array[curr + 5] = a;
-
-	world_mesh_check_realloc();
-
-	return list;
+	world_mesh_finalize_quad(type, normal, a, b, c, d);
 }
 
 static void world_mesh_flowing_water(int mask, int strength, enum quad_normal normal)
@@ -161,35 +158,7 @@ static void world_mesh_flowing_water(int mask, int strength, enum quad_normal no
 		break;
 	}
 
-	if (normal & FLIPPED_BIT)
-	{
-		/* -1 for air */
-		c = SET_BLOCK_VERTEX_TEXTURE(c, 0, 0, BLOCK_WATER - 1);
-		a = SET_BLOCK_VERTEX_TEXTURE(a, 1, 1, BLOCK_WATER - 1);
-		b = SET_BLOCK_VERTEX_TEXTURE(b, 1, 0, BLOCK_WATER - 1);
-		d = SET_BLOCK_VERTEX_TEXTURE(d, 0, 1, BLOCK_WATER - 1);
-	}
-	else
-	{
-		/* -1 for air */
-		a = SET_BLOCK_VERTEX_TEXTURE(a, 1, 0, BLOCK_WATER - 1);
-		c = SET_BLOCK_VERTEX_TEXTURE(c, 0, 1, BLOCK_WATER - 1);
-		b = SET_BLOCK_VERTEX_TEXTURE(b, 0, 0, BLOCK_WATER - 1);
-		d = SET_BLOCK_VERTEX_TEXTURE(d, 1, 1, BLOCK_WATER - 1);
-	}
-
-	size_t curr = list->count;
-	list->count += 6;
-	list->array[curr + 0] = a;
-	list->array[curr + 1] = b;
-	list->array[curr + 2] = c;
-	list->array[curr + 3] = c;
-	list->array[curr + 4] = d;
-	list->array[curr + 5] = a;
-
-	world_mesh_check_realloc();
-
-	return list;
+	world_mesh_finalize_quad(BLOCK_WATER - 1, normal, a, b, c, d);
 }
 
 static void world_chunk_clean_opaque(struct chunk* chunk)

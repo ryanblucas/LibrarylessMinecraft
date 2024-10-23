@@ -105,3 +105,23 @@ void mc_list_splice(array_list_t list, int start, int count)
 	memmove(list->array + start * list->element_size, list->array + end * list->element_size, (list->count - end) * list->element_size);
 	list->count -= count;
 }
+
+void mc_list_array_add(array_list_t list, int index, void* arr, size_t element_size, int arr_size)
+{
+	assert(element_size == list->element_size && arr_size >= 0);
+	index = max(min(list->count, index), 0);
+
+	if (list->count + arr_size >= list->reserved)
+	{
+		int new_reserved = (1 << (int)(log2(list->count + arr_size) + 1.0));
+		uint8_t* new_arr = mc_malloc(element_size * new_reserved);
+		memcpy(new_arr, list->array, element_size * list->count);
+		free(list->array);
+		list->array = new_arr;
+		list->reserved = new_reserved;
+	}
+
+	memmove(list->array + (index + arr_size) * element_size, list->array + index * element_size, (list->count - index) * element_size);
+	memcpy(list->array + index * element_size, arr, element_size * arr_size);
+	list->count += arr_size;
+}
