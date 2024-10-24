@@ -24,17 +24,12 @@ void world_init(void)
 	entity_player_init(&player);
 
 	array_list_t vertices = mc_list_create(sizeof(vertex_t));
-	for (int i = 0; i < mc_list_count(chunk_list); i++)
+	for (int j = 0; j < CHUNK_WY; j += 16)
 	{
-		struct chunk* chunk = MC_LIST_CAST_GET(chunk_list, i, struct chunk);
-		for (int j = 0; j < CHUNK_WY; j += 16)
-		{
-			vertex_t to_add[24];
-			graphics_primitive_cube((vector3_t) { (float)chunk->x, (float)j, (float)chunk->z }, (vector3_t) { 16, 16, 16 }, to_add);
-			mc_list_array_add(vertices, mc_list_count(vertices), to_add, sizeof * to_add, 24);
-		}
+		vertex_t to_add[24];
+		graphics_primitive_cube((vector3_t) { 0, (float)j, 0 }, (vector3_t) { 16, 16, 16 }, to_add);
+		mc_list_array_add(vertices, mc_list_count(vertices), to_add, sizeof * to_add, 24);
 	}
-
 	debug_chunk_border = graphics_buffer_create(mc_list_array(vertices), mc_list_count(vertices), STANDARD_VERTEX);
 	mc_list_destroy(&vertices);
 }
@@ -161,7 +156,6 @@ int world_region_aabb(block_coords_t _min, block_coords_t _max, aabb_t* arr, int
 	_min = vector_to_block_coords(vector3_min(v_min, v_max));
 	_max = vector_to_block_coords(vector3_max(v_min, v_max));
 
-	graphics_debug_clear();
 	block_coords_t curr;
 	int curr_i = 0;
 	for (curr.z = _min.z; curr.z <= _max.z; curr.z++)
@@ -170,12 +164,7 @@ int world_region_aabb(block_coords_t _min, block_coords_t _max, aabb_t* arr, int
 		{
 			for (curr.x = _min.x; curr.x <= _max.x; curr.x++)
 			{
-				if (curr_i >= arr_len)
-				{
-					break;
-				}
-				GRAPHICS_DEBUG_SET_BLOCK(curr);
-				if (!IS_SOLID(world_block_get(curr)))
+				if (curr_i >= arr_len || !IS_SOLID(world_block_get(curr)))
 				{
 					continue;
 				}
@@ -497,6 +486,15 @@ void world_render(float delta)
 
 	if (display_debug_chunk_border)
 	{
-		graphics_debug_draw_buffer(debug_chunk_border);
+		vector3_t player_pos = aabb_get_center(player.hitbox);
+		player_pos.x = ROUND_DOWN(player_pos.x, CHUNK_WX);
+		player_pos.y = 0.0F;
+		player_pos.z = ROUND_DOWN(player_pos.z, CHUNK_WZ);
+		graphics_debug_queue_buffer((debug_buffer_t)
+		{
+			.vertex = debug_chunk_border,
+			.color = COLOR_CREATE(255, 0, 0),
+			.position = player_pos
+		});
 	}
 }

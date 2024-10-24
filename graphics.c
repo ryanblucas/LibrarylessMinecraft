@@ -73,7 +73,7 @@ void graphics_init(void)
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
 	ASSERT_NO_ERROR();
 
-	user_debug_buffers = mc_list_create(sizeof(vertex_buffer_t));
+	user_debug_buffers = mc_list_create(sizeof(debug_buffer_t));
 }
 
 void graphics_destroy(void)
@@ -309,6 +309,14 @@ void graphics_shader_matrix(const char* name, const matrix_t mat4)
 	ASSERT_NO_ERROR();
 }
 
+void graphics_shader_int(const char* name, int i)
+{
+	struct uniform_stats* curr = graphics_shader_get_uniform(name);
+	mc_panic_if(!curr || curr->type != GL_INT, "shader missing a uniform int");
+	glUniform1i(curr->location, i);
+	ASSERT_NO_ERROR();
+}
+
 static inline void graphics_buffer_bind(struct vertex_buffer* buf)
 {
 	if (buf == current_buffer)
@@ -511,26 +519,40 @@ void graphics_debug_draw(void)
 		}
 	}
 
-	graphics_buffer_bind(&debug_buffer);
 	graphics_shader_use(line_shader);
 	camera_activate();
-	struct uniform_stats* us = graphics_shader_get_uniform("u_color");
-	mc_panic_if(!us || us->type != GL_INT, "invalid debug shader");
-	glUniform1i(us->location, COLOR_CREATE(255, 255, 255));
+	color_t curr_color = COLOR_CREATE(255, 255, 255);
+	matrix_t transform = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
+	graphics_shader_int("u_color", curr_color);
+	graphics_shader_matrix("model", transform);
 
 	if (mc_list_count(primitives) > 0)
 	{
+		graphics_buffer_bind(&debug_buffer);
 		struct debug_primitive* first = MC_LIST_CAST_GET(primitives, 0, struct debug_primitive),
 			* last = MC_LIST_CAST_GET(primitives, mc_list_count(primitives) - 1, struct debug_primitive);
 		int start = first->start, count = last->start + last->size - first->start;
 		glDrawArrays(GL_LINES, start, count);
 	}
 	
+	vector3_t curr_vec = { 0 };
 	for (int i = 0; i < mc_list_count(user_debug_buffers); i++)
 	{
-		vertex_buffer_t curr = *MC_LIST_CAST_GET(user_debug_buffers, i, vertex_buffer_t);
-		graphics_buffer_bind(curr);
-		glDrawArrays(GL_LINES, 0, curr->size);
+		debug_buffer_t* curr = MC_LIST_CAST_GET(user_debug_buffers, i, debug_buffer_t);
+		if (!vector3_adaptive_eq(curr->position, curr_vec))
+		{
+			curr_vec = curr->position;
+			matrix_translation(curr_vec, transform);
+			graphics_shader_matrix("model", transform);
+		}
+		if (curr_color != curr->color)
+		{
+			curr_color = curr->color;
+			graphics_shader_int("u_color", curr_color);
+		}
+
+		graphics_buffer_bind(curr->vertex);
+		glDrawArrays(GL_LINES, 0, curr->vertex->size);
 	}
 	mc_list_splice(user_debug_buffers, 0, mc_list_count(user_debug_buffers));
 	
@@ -545,7 +567,7 @@ void graphics_debug_draw(void)
 	}
 }
 
-void graphics_debug_draw_buffer(vertex_buffer_t buffer)
+void graphics_debug_queue_buffer(debug_buffer_t buffer)
 {
 	mc_list_add(user_debug_buffers, mc_list_count(user_debug_buffers), &buffer, sizeof buffer);
 }

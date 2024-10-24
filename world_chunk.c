@@ -7,8 +7,6 @@
 #include "world.h"
 #include "perlin.h"
 
-#define ROUND_DOWN(c, m) (((c) < 0 ? -((-(c) - 1 + (m)) / (m)) : (c) / (m)) * (m))
-
 array_list_t chunk_list;
 
 void world_chunk_init(void)
@@ -54,7 +52,8 @@ struct chunk* world_chunk_create(int x_o, int z_o)
 
 	for (int i = 0; i < CHUNK_FLOOR_BLOCK_COUNT; i++)
 	{
-		int slice_height = perlin_brownian_at(CHUNK_FX(i) + next->x, CHUNK_FZ(i) + next->z, 6, 1.0, 0.005) * 128.0;
+		int slice_height = perlin_brownian_at(CHUNK_FX(i) + next->x, CHUNK_FZ(i) + next->z, 6, 1.0, 0.005) * 32;
+		slice_height += 64;
 		slice_height = max(min(slice_height, CHUNK_WY - 1), 0);
 		CHUNK_AT(next->arr, CHUNK_X(i), slice_height--, CHUNK_Z(i)) = BLOCK_GRASS;
 		for (int j = 1; j < 4 && slice_height >= 0; j++, slice_height--)

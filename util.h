@@ -37,6 +37,8 @@ void mc_list_splice(array_list_t list, int start, int count);
 /* Appends array to list at index. element_size is the size of each of arr's elements in bytes, arr_size is the count of those elements--NOT in bytes. */
 void mc_list_array_add(array_list_t list, int index, void* arr, size_t element_size, int arr_size);
 
+#define ROUND_DOWN(c, m) (((c) < 0 ? -((int)(-(c) - 1 + (m)) / (int)(m)) : (int)(c) / (int)(m)) * (m))
+
 /* Cleans game state and crashes. *ONLY CALL IN EMERGENCY* */
 extern inline void mc_panic_if(bool condition, const char* reason)
 {

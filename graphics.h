@@ -60,8 +60,10 @@ shader_t graphics_shader_load(const char* vertex_path, const char* fragment_path
 void graphics_shader_delete(shader_t* shader);
 /* Sets current shader. */
 void graphics_shader_use(shader_t shader);
-/* Sets a shader's model transform uniform */
+/* Sets a shader's model uniform */
 void graphics_shader_matrix(const char* name, const matrix_t mat4);
+/* Sets a shader's color uniform */
+void graphics_shader_int(const char* name, int i);
 
 /*	Creates vertex buffer. Start and len can both be 0, but if 
 	they aren't they specify the starting values for the buffer.
@@ -79,6 +81,13 @@ void graphics_buffer_draw(vertex_buffer_t buffer);
 #define GRAPHICS_DEBUG_SET_BLOCK(coords) graphics_debug_set_cube(block_coords_to_vector(coords), (vector3_t) { 1.0F, 1.0F, 1.0F })
 #define GRAPHICS_DEBUG_SET_AABB(aabb) graphics_debug_set_cube((aabb).min, aabb_dimensions(aabb))
 
+typedef struct debug_buffer
+{
+	vertex_buffer_t vertex;
+	color_t color;
+	vector3_t position;
+} debug_buffer_t;
+
 /* Clears debug buffer */
 void graphics_debug_clear(void);
 /* Sets line to draw from "begin" to "end" */
@@ -91,4 +100,4 @@ void graphics_debug_set_cube(vector3_t pos, vector3_t dim);
 void graphics_debug_draw(void);
 /* Draws a vertex buffer using the debug shader. This does not immediately draw the buffer,
 	it instead waits till graphics_debug_draw is called to preserve any active shader state. */
-void graphics_debug_draw_buffer(vertex_buffer_t buffer);
+void graphics_debug_queue_buffer(debug_buffer_t buffer);

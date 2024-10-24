@@ -4,6 +4,8 @@
 */
 
 #include "perlin.h"
+#include <math.h>
+#include <string.h>
 
 struct perlin_vector2
 {
@@ -33,10 +35,8 @@ static inline void perlin_check_init(void)
 {
 	if (p_large[0] != p_original[0])
 	{
-		for (int i = 0; i < 512; i++)
-		{
-			p_large[i] = p_original[i % 256];
-		}
+		memcpy(p_large, p_original, sizeof p_original);
+		memcpy(p_large + 256, p_original, sizeof p_original);
 	}
 }
 
@@ -70,19 +70,19 @@ double perlin_at(double x, double y)
 {
 	perlin_check_init();
 
+	double xd = x - floor(x),
+		yd = y - floor(y);
+	struct perlin_vector2 v_tl = { xd, yd - 1.0 },
+		v_tr = { xd - 1.0, yd - 1.0 },
+		v_bl = { xd, yd },
+		v_br = { xd - 1.0, yd };
+
 	int xi = (int)x & 0xFF,
 		yi = (int)y & 0xFF;
 	int h_tl = p_large[p_large[xi] + yi + 1],
 		h_tr = p_large[p_large[xi + 1] + yi + 1],
 		h_bl = p_large[p_large[xi] + yi],
 		h_br = p_large[p_large[xi + 1] + yi];
-
-	double xd = x - (int)x,
-		yd = y - (int)y;
-	struct perlin_vector2 v_tl = { xd, yd - 1.0 },
-		v_tr = { xd - 1.0, yd - 1.0 },
-		v_bl = { xd, yd },
-		v_br = { xd - 1.0, yd };
 
 	double dot_tl = perlin_dot(v_tl, perlin_constant_vector(h_tl)),
 		dot_tr = perlin_dot(v_tr, perlin_constant_vector(h_tr)),
@@ -92,7 +92,7 @@ double perlin_at(double x, double y)
 	double u = perlin_fade(xd),
 		v = perlin_fade(yd);
 
-	return perlin_lerp(u, perlin_lerp(v, dot_tl, dot_bl), perlin_lerp(v, dot_tr, dot_br));
+	return perlin_lerp(u, perlin_lerp(v, dot_bl, dot_tl), perlin_lerp(v, dot_br, dot_tr));
 }
 
 double perlin_brownian_at(double x, double y, int count, double amplitude, double frequency)
