@@ -161,10 +161,25 @@ static void world_mesh_flowing_water(int mask, int strength, enum quad_normal no
 	world_mesh_finalize_quad(BLOCK_WATER - 1, normal, a, b, c, d);
 }
 
+static inline const block_type_t* world_chunk_get_array_or_default(int x, int z)
+{
+	struct chunk* chunk = world_chunk_get(x, z);
+	if (chunk)
+	{
+		return chunk->arr;
+	}
+
+	static block_type_t def[CHUNK_BLOCK_COUNT];
+	return def;
+}
+
 static void world_chunk_clean_opaque(struct chunk* chunk)
 {
-	/* TO DO: Now that this function has access to all chunks, it can exclude block faces that are touching other chunks' block faces. */
-
+	const block_type_t* left = world_chunk_get_array_or_default(chunk->x - CHUNK_WX, chunk->z),
+		*right = world_chunk_get_array_or_default(chunk->x + CHUNK_WX, chunk->z),
+		*backward = world_chunk_get_array_or_default(chunk->x, chunk->z - CHUNK_WZ),
+		*forward = world_chunk_get_array_or_default(chunk->x, chunk->z + CHUNK_WZ);
+	const block_type_t* arr = chunk->arr;
 	for (int mask = 0; mask < CHUNK_BLOCK_COUNT; mask++)
 	{
 		int x = CHUNK_X(mask), y = CHUNK_Y(mask), z = CHUNK_Z(mask);
@@ -174,27 +189,27 @@ static void world_chunk_clean_opaque(struct chunk* chunk)
 			continue;
 		}
 		curr--;
-		if (x == 0 || !IS_SOLID(CHUNK_AT(chunk->arr, x - 1, y, z)))
+		if ((x == 0 && !IS_SOLID(CHUNK_AT(left, 15, y, z))) || !IS_SOLID(CHUNK_AT(arr, x - 1, y, z)))
 		{
 			world_mesh_quad(mask, curr, LEFT);
 		}
-		if (x == CHUNK_WX - 1 || !IS_SOLID(CHUNK_AT(chunk->arr, x + 1, y, z)))
+		if ((x == CHUNK_WX - 1 && !IS_SOLID(CHUNK_AT(right, 0, y, z))) || !IS_SOLID(CHUNK_AT(arr, x + 1, y, z)))
 		{
 			world_mesh_quad(mask, curr, RIGHT);
 		}
-		if (y == 0 || !IS_SOLID(CHUNK_AT(chunk->arr, x, y - 1, z)))
+		if (y == 0 || !IS_SOLID(CHUNK_AT(arr, x, y - 1, z)))
 		{
 			world_mesh_quad(mask, curr, UP);
 		}
-		if (y == CHUNK_WY - 1 || !IS_SOLID(CHUNK_AT(chunk->arr, x, y + 1, z)))
+		if (y == CHUNK_WY - 1 || !IS_SOLID(CHUNK_AT(arr, x, y + 1, z)))
 		{
 			world_mesh_quad(mask, curr, DOWN);
 		}
-		if (z == 0 || !IS_SOLID(CHUNK_AT(chunk->arr, x, y, z - 1)))
+		if ((z == 0 && !IS_SOLID(CHUNK_AT(backward, x, y, 15))) || !IS_SOLID(CHUNK_AT(arr, x, y, z - 1)))
 		{
 			world_mesh_quad(mask, curr, BACKWARD);
 		}
-		if (z == CHUNK_WZ - 1 || !IS_SOLID(CHUNK_AT(chunk->arr, x, y, z + 1)))
+		if ((z == CHUNK_WZ - 1 && !IS_SOLID(CHUNK_AT(forward, x, y, 0))) || !IS_SOLID(CHUNK_AT(arr, x, y, z + 1)))
 		{
 			world_mesh_quad(mask, curr, FORWARD);
 		}

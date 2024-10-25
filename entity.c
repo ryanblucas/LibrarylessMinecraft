@@ -85,7 +85,7 @@ static void entity_player_move_noclip(entity_t* ent, float delta)
 	{
 		desired = vector3_sub(desired, right);
 	}
-	float speed = window_input_down(INPUT_SNEAK) ? 7.5F : 15.0F;
+	float speed = window_input_down(INPUT_SNEAK) ? 30.0F : 15.0F;
 	desired = vector3_mul_scalar(vector3_normalize(desired), delta * speed);
 	ent->hitbox = aabb_translate(ent->hitbox, desired);
 }

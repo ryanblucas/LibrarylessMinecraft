@@ -4,6 +4,8 @@
 */
 
 #include "perlin.h"
+#include <assert.h>
+#include <stdio.h>
 #include <math.h>
 #include <string.h>
 
@@ -49,6 +51,7 @@ static inline struct perlin_vector2 perlin_constant_vector(int hash)
 	case 2: return (struct perlin_vector2) { -1.0, -1.0 };
 	case 3: return (struct perlin_vector2) { 1.0, -1.0 };
 	}
+	assert(0);
 }
 
 static inline double perlin_dot(struct perlin_vector2 a, struct perlin_vector2 b)
@@ -77,8 +80,8 @@ double perlin_at(double x, double y)
 		v_bl = { xd, yd },
 		v_br = { xd - 1.0, yd };
 
-	int xi = (int)x & 0xFF,
-		yi = (int)y & 0xFF;
+	int xi = (int)floor(x) & 0xFF,
+		yi = (int)floor(y) & 0xFF;
 	int h_tl = p_large[p_large[xi] + yi + 1],
 		h_tr = p_large[p_large[xi + 1] + yi + 1],
 		h_bl = p_large[p_large[xi] + yi],
@@ -95,8 +98,10 @@ double perlin_at(double x, double y)
 	return perlin_lerp(u, perlin_lerp(v, dot_bl, dot_tl), perlin_lerp(v, dot_br, dot_tr));
 }
 
-double perlin_brownian_at(double x, double y, int count, double amplitude, double frequency)
+double perlin_brownian_at(double x, double y, int count)
 {
+	double amplitude = 1.0,
+		frequency = 0.005;
 	double res = 0.0;
 	for (int i = 0; i < count; i++)
 	{
