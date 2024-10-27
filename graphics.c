@@ -79,11 +79,11 @@ void graphics_init(void)
 	debug_vertex_t axis_lines[] =
 	{
 		{ 0, 0, 0, COLOR_CREATE(255, 0, 0) },
-		{ 1, 0, 0, COLOR_CREATE(255, 0, 0) },
+		{ 0, 0, 1, COLOR_CREATE(255, 0, 0) },
 		{ 0, 0, 0, COLOR_CREATE(0, 255, 0) },
 		{ 0, 1, 0, COLOR_CREATE(0, 255, 0) },
 		{ 0, 0, 0, COLOR_CREATE(0, 0, 255) },
-		{ 0, 0, 1, COLOR_CREATE(0, 0, 255) },
+		{ 1, 0, 0, COLOR_CREATE(0, 0, 255) },
 	};
 	axis_buffer = graphics_buffer_create(axis_lines, 6, DEBUG_VERTEX);
 }
@@ -562,7 +562,6 @@ void graphics_debug_draw(void)
 
 	if (visualize_axis)
 	{
-		/*
 		matrix_t x, y, res;
 		matrix_rotate_x(camera_pitch(), x);
 		matrix_rotate_y(camera_yaw(), y);
@@ -574,7 +573,9 @@ void graphics_debug_draw(void)
 
 		graphics_shader_matrix("camera", transform);
 		graphics_buffer_bind(axis_buffer);
-		glDrawArrays(GL_LINES, 0, axis_buffer->size);*/
+		glDisable(GL_DEPTH_TEST);
+		glDrawArrays(GL_LINES, 0, axis_buffer->size);
+		glEnable(GL_DEPTH_TEST);
 	}
 
 	camera_activate();
