@@ -52,7 +52,7 @@ struct chunk* world_chunk_create(int x_o, int z_o)
 
 	for (int i = 0; i < CHUNK_FLOOR_BLOCK_COUNT; i++)
 	{
-		int slice_height = perlin_brownian_at(CHUNK_FX(i) + next->x, CHUNK_FZ(i) + next->z, 6) * 32;
+		int slice_height = /*perlin_brownian_at(CHUNK_FX(i) + next->x, CHUNK_FZ(i) + next->z, 6) * 32*/64;
 		slice_height += 64;
 		slice_height = max(min(slice_height, CHUNK_WY - 1), 0);
 		CHUNK_AT(next->arr, CHUNK_X(i), slice_height--, CHUNK_Z(i)) = BLOCK_GRASS;
@@ -68,7 +68,7 @@ struct chunk* world_chunk_create(int x_o, int z_o)
 
 	next->dirty_mask = OPAQUE_BIT;
 	next->opaque_buffer = graphics_buffer_create(NULL, 0, BLOCK_VERTEX);
-	next->liquid_buffer = graphics_buffer_create(NULL, 0, BLOCK_VERTEX);
+	next->liquid_buffer = graphics_buffer_create(NULL, 0, STANDARD_VERTEX);
 	return next;
 }
 

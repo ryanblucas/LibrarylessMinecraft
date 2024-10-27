@@ -1,9 +1,9 @@
 #version 460 core
 
-uniform int u_color;
+flat in int colori;
 out vec4 color;
 
 void main()
 {
-	color = vec4((u_color & 0xFF) / 255.0F, ((u_color >> 8) & 0xFF) / 255.0F, ((u_color >> 16) & 0xFF) / 255.0F, 1.0);
+	color = vec4((colori & 0xFF) / 255.0F, ((colori >> 8) & 0xFF) / 255.0F, ((colori >> 16) & 0xFF) / 255.0F, 1.0);
 }

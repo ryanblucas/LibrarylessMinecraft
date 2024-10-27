@@ -19,23 +19,30 @@ typedef struct shader* shader_t;
 
 typedef struct vertex_buffer* vertex_buffer_t;
 /* Raw block/chunk vertex data, sent straight to the GPU. First 10 bits are 5-bit position (XZ), Y is next at 9-bit,
-	next 2 bits are X and Y for texture coordinates and the next 8 bits designate which texture ID to use.
-	Next 3 bits are height modifiers for the block, usually for liquid */
+	next 2 bits are X and Y for texture coordinates and the next 8 bits designate which texture ID to use. */
 typedef uint32_t block_vertex_t;
 
 typedef struct vertex
 {
 	float x, y, z;
+	float tx, ty;
 } vertex_t;
+
+typedef struct debug_vertex
+{
+	float x, y, z;
+	color_t color;
+} debug_vertex_t;
 
 typedef enum vertex_type
 {
-	BLOCK_VERTEX,
-	STANDARD_VERTEX
+	BLOCK_VERTEX,		/* Expects array of block_vertex_t */
+	STANDARD_VERTEX,	/* Expects array of vertex_t */
+	POSITION_VERTEX,	/* Expects array of floats, three making up one position */
+	DEBUG_VERTEX		/* Expects array of debug_vertex_t */
 } vertex_type_t;
 
 #define CREATE_BLOCK_VERTEX_POS(x, y, z)			((x) | ((z) << 5) | ((y) << 10))
-#define CREATE_LIQUID_VERTEX_POS(x, y, z, mod)		(CREATE_BLOCK_VERTEX_POS(x, y, z) | ((mod) << 29))
 #define SET_BLOCK_VERTEX_TEXTURE(v, tx, ty, tid)	((v) | ((tx) << 19) | ((ty) << 20) | ((tid) << 21))
 
 /* Initializes graphics objects and state */
@@ -50,7 +57,7 @@ void graphics_clear(color_t color);
 sampler_t graphics_sampler_load(const char* path);
 /* Deletes sampler and sets handle to 0. */
 void graphics_sampler_delete(sampler_t* sampler);
-/* Sets a sampler to use in a unit. */
+/* Sets a sampler to use. */
 void graphics_sampler_use(sampler_t handle);
 
 /*	Loads shader given vertex shader path/directory and fragment shader path/directory. 
@@ -62,17 +69,15 @@ void graphics_shader_delete(shader_t* shader);
 void graphics_shader_use(shader_t shader);
 /* Sets a shader's model uniform */
 void graphics_shader_matrix(const char* name, const matrix_t mat4);
-/* Sets a shader's color uniform */
+/* Sets a shader's int uniform */
 void graphics_shader_int(const char* name, int i);
 
 /*	Creates vertex buffer. Start and len can both be 0, but if 
 	they aren't they specify the starting values for the buffer.
-	len refers to the count of elements, not the count of bytes.
-	If type is BLOCK_VERTEX, start is a pointer to an array of block_vertex_t.
-	If type is STANDARD_VERTEX, start is a pointer to an array of vertex_t. */
+	len refers to the count of elements, not the count of bytes. */
 vertex_buffer_t graphics_buffer_create(const void* start, int len, vertex_type_t type);
 /* Modifies existing vertex buffer. */
-void graphics_buffer_modify(vertex_buffer_t buffer, const void* buf, size_t len);
+void graphics_buffer_modify(vertex_buffer_t buffer, const void* buf, int len);
 /* Deletes the vertex buffer and sets the pointer to NULL */
 void graphics_buffer_delete(vertex_buffer_t* buffer);
 /* Draws vertex buffer with current shader. */
@@ -83,9 +88,8 @@ void graphics_buffer_draw(vertex_buffer_t buffer);
 
 typedef struct debug_buffer
 {
-	vertex_buffer_t vertex;
-	color_t color;
-	vector3_t position;
+	vertex_buffer_t vertex;	/* Either of type "POSITION_VERTEX," where it renders lines white, or "DEBUG_VERTEX" */
+	vector3_t position;		/* Offset to render vertex buffer */
 } debug_buffer_t;
 
 /* Clears debug buffer */

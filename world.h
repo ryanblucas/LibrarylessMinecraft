@@ -5,6 +5,7 @@
 #pragma once
 
 #include "entity.h"
+#include "graphics.h"
 #include "util.h"
 
 #define CHUNK_WX 16
@@ -117,7 +118,7 @@ void world_block_update(block_coords_t coords);
 /* Updates world */
 void world_update(float delta);
 /* Renders world to screen */
-void world_render(float delta);
+void world_render(const shader_t solid, const shader_t liquid, float delta);
 
 #ifdef WORLD_INTERNAL
 

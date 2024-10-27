@@ -37,6 +37,9 @@ typedef struct entity
 void entity_player_init(entity_t* ent);
 /* Updates an entity using a player update */
 void entity_player_update(entity_t* ent, float delta);
+/* Is the player noclipping? */
+bool entity_player_is_noclipping(const entity_t* ent);
+
 /* Moves an entity given an addend, checking for collisions w/ the world */
 collision_face_t entity_move(entity_t* ent, vector3_t addend);
 

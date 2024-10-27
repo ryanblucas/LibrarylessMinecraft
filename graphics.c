@@ -40,6 +40,7 @@ static sampler_t current_sampler;
 
 static shader_t line_shader;
 static struct vertex_buffer debug_buffer;
+static vertex_buffer_t axis_buffer;
 static array_list_t user_debug_buffers;
 
 struct debug_primitive
@@ -61,7 +62,7 @@ void graphics_init(void)
 	glGenVertexArrays(1, &debug_buffer.vao);
 	glGenBuffers(1, &debug_buffer.vbo);
 	debug_buffer.reserved = 64 * 24;
-	debug_buffer.type = STANDARD_VERTEX;
+	debug_buffer.type = POSITION_VERTEX;
 	primitives = mc_list_create(sizeof(struct debug_primitive));
 
 	glBindVertexArray(debug_buffer.vao);
@@ -74,6 +75,17 @@ void graphics_init(void)
 	ASSERT_NO_ERROR();
 
 	user_debug_buffers = mc_list_create(sizeof(debug_buffer_t));
+
+	debug_vertex_t axis_lines[] =
+	{
+		{ 0, 0, 0, COLOR_CREATE(255, 0, 0) },
+		{ 1, 0, 0, COLOR_CREATE(255, 0, 0) },
+		{ 0, 0, 0, COLOR_CREATE(0, 255, 0) },
+		{ 0, 1, 0, COLOR_CREATE(0, 255, 0) },
+		{ 0, 0, 0, COLOR_CREATE(0, 0, 255) },
+		{ 0, 0, 1, COLOR_CREATE(0, 0, 255) },
+	};
+	axis_buffer = graphics_buffer_create(axis_lines, 6, DEBUG_VERTEX);
 }
 
 void graphics_destroy(void)
@@ -236,7 +248,13 @@ static GLuint graphics_create_program(const char* vertex_path, const char* fragm
 
 	GLint success;
 	glGetProgramiv(id, GL_LINK_STATUS, &success);
-	mc_panic_if(!success, "program link failure");
+	if (!success)
+	{
+		char err[1024];
+		glGetProgramInfoLog(id, 1024, NULL, err);
+		printf("%s\n", err);
+		mc_panic_if(true, "program link failure");
+	}
 
 	ASSERT_NO_ERROR();
 	return id;
@@ -339,20 +357,34 @@ vertex_buffer_t graphics_buffer_create(const void* start, int len, vertex_type_t
 
 	graphics_buffer_bind(result);
 
-	if (type == BLOCK_VERTEX)
+	switch (type)
 	{
+	case BLOCK_VERTEX:
 		glBufferData(GL_ARRAY_BUFFER, len * sizeof(block_vertex_t), start, GL_STATIC_DRAW);
 		glEnableVertexAttribArray(0);
 		glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, sizeof(block_vertex_t), (void*)0);
-	}
-	else if (type == STANDARD_VERTEX)
-	{
+		break;
+	case STANDARD_VERTEX:
 		glBufferData(GL_ARRAY_BUFFER, len * sizeof(vertex_t), start, GL_STATIC_DRAW);
 		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*)0);
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*)(sizeof(float) * 3));
+		break;
+	case POSITION_VERTEX:
+		glBufferData(GL_ARRAY_BUFFER, len * sizeof(float) * 3, start, GL_STATIC_DRAW);
+		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
-	}
-	else
-	{
+		break;
+	case DEBUG_VERTEX:
+		glBufferData(GL_ARRAY_BUFFER, len * sizeof(debug_vertex_t), start, GL_STATIC_DRAW);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(debug_vertex_t), (void*)0);
+		glEnableVertexAttribArray(1);
+		glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, sizeof(debug_vertex_t), (void*)(sizeof(float) * 3));
+		break;
+
+	default:
 		assert(false);
 	}
 
@@ -360,9 +392,9 @@ vertex_buffer_t graphics_buffer_create(const void* start, int len, vertex_type_t
 	return result;
 }
 
-void graphics_buffer_modify(vertex_buffer_t buffer, const void* buf, size_t len)
+void graphics_buffer_modify(vertex_buffer_t buffer, const void* buf, int len)
 {
-	size_t element_size = buffer->type == BLOCK_VERTEX ? sizeof(block_vertex_t) : (sizeof(float) * 3);
+	size_t element_size = buffer->type == BLOCK_VERTEX ? sizeof(block_vertex_t) : sizeof(vertex_t);
 	graphics_buffer_bind(buffer);
 	if (len > buffer->reserved)
 	{
@@ -460,7 +492,7 @@ void graphics_debug_set_line(vector3_t begin, vector3_t end)
 	ASSERT_NO_ERROR();
 }
 
-void graphics_primitive_cube(vector3_t pos, vector3_t dim, vertex_t out[24])
+void graphics_primitive_cube(vector3_t pos, vector3_t dim, float out[72])
 {
 	float pts[] =
 	{
@@ -496,7 +528,7 @@ void graphics_primitive_cube(vector3_t pos, vector3_t dim, vertex_t out[24])
 void graphics_debug_set_cube(vector3_t pos, vector3_t dim)
 {
 	float pts[72];
-	graphics_primitive_cube(pos, dim, (vertex_t*)pts);
+	graphics_primitive_cube(pos, dim, pts);
 	int buffer_pos = graphics_debug_add_primitive(24, mc_hash(pts, sizeof pts));
 	graphics_buffer_bind(&debug_buffer);
 	glBufferSubData(GL_ARRAY_BUFFER, buffer_pos * sizeof(float) * 3, sizeof pts, pts);
@@ -519,11 +551,33 @@ void graphics_debug_draw(void)
 		}
 	}
 
+	static bool visualize_axis;
+	if (window_input_clicked(INPUT_TOGGLE_VISUALIZE_AXIS))
+	{
+		visualize_axis = !visualize_axis;
+	}
+
 	graphics_shader_use(line_shader);
-	camera_activate();
-	color_t curr_color = COLOR_CREATE(255, 255, 255);
 	matrix_t transform = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
-	graphics_shader_int("u_color", curr_color);
+
+	if (visualize_axis)
+	{
+		/*
+		matrix_t x, y, res;
+		matrix_rotate_x(camera_pitch(), x);
+		matrix_rotate_y(camera_yaw(), y);
+		matrix_scale((vector3_t) { 0.3F, 0.3F, 0.3F }, res);
+		matrix_multiply(res, y, res);
+		matrix_multiply(res, x, res);
+
+		graphics_shader_matrix("model", res);
+
+		graphics_shader_matrix("camera", transform);
+		graphics_buffer_bind(axis_buffer);
+		glDrawArrays(GL_LINES, 0, axis_buffer->size);*/
+	}
+
+	camera_activate();
 	graphics_shader_matrix("model", transform);
 
 	if (mc_list_count(primitives) > 0)
@@ -533,6 +587,7 @@ void graphics_debug_draw(void)
 			* last = MC_LIST_CAST_GET(primitives, mc_list_count(primitives) - 1, struct debug_primitive);
 		int start = first->start, count = last->start + last->size - first->start;
 		glDrawArrays(GL_LINES, start, count);
+		ASSERT_NO_ERROR();
 	}
 	
 	vector3_t curr_vec = { 0 };
@@ -545,18 +600,10 @@ void graphics_debug_draw(void)
 			matrix_translation(curr_vec, transform);
 			graphics_shader_matrix("model", transform);
 		}
-		if (curr_color != curr->color)
-		{
-			curr_color = curr->color;
-			graphics_shader_int("u_color", curr_color);
-		}
-
 		graphics_buffer_bind(curr->vertex);
 		glDrawArrays(GL_LINES, 0, curr->vertex->size);
 	}
 	mc_list_splice(user_debug_buffers, 0, mc_list_count(user_debug_buffers));
-	
-	ASSERT_NO_ERROR();
 
 	for (int i = mc_list_count(primitives) - 1; i >= 0; i--)
 	{

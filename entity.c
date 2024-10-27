@@ -147,6 +147,12 @@ void entity_player_update(entity_t* ent, float delta)
 	}
 }
 
+bool entity_player_is_noclipping(const entity_t* ent)
+{
+	struct player_internal* internal = ent->reserved;
+	return internal->noclip_on;
+}
+
 #define MOVEMENT_EPSILON	0.01F
 #define MOVEMENT_MAX_LENGTH	0.7F
 

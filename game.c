@@ -11,12 +11,14 @@
 
 #define TICK_TIME (1.0F / 20)
 
-static shader_t chunk_shader;
+static shader_t block_shader;
+static shader_t liquid_shader;
 static sampler_t atlas;
 
 void game_init(void)
 {
-	chunk_shader = graphics_shader_load("assets/shaders/basic_vertex.glsl", "assets/shaders/basic_fragment.glsl");
+	block_shader = graphics_shader_load("assets/shaders/block_vertex.glsl", "assets/shaders/block_fragment.glsl");
+	liquid_shader = graphics_shader_load("assets/shaders/liquid_vertex.glsl", "assets/shaders/liquid_fragment.glsl");
 	atlas = graphics_sampler_load("assets/atlas.bmp");
 
 	world_init();
@@ -24,7 +26,7 @@ void game_init(void)
 
 void game_destroy(void)
 {
-	graphics_shader_delete(&chunk_shader);
+	graphics_shader_delete(&block_shader);
 	graphics_sampler_delete(&atlas);
 }
 
@@ -47,9 +49,6 @@ void game_frame(float delta)
 
 	graphics_clear(COLOR_CREATE(0x64, 0x95, 0xED));
 
-	graphics_shader_use(chunk_shader);
 	graphics_sampler_use(atlas);
-	camera_activate();
-
-	world_render(delta);
+	world_render(block_shader, liquid_shader, delta);
 }

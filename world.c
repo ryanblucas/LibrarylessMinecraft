@@ -5,6 +5,7 @@
 #define WORLD_INTERNAL
 #include "world.h"
 #include <assert.h>
+#include "camera.h"
 #include "entity.h"
 #include "graphics.h"
 #include "window.h"
@@ -23,14 +24,14 @@ void world_init(void)
 	world_chunk_init();
 	entity_player_init(&player);
 
-	array_list_t vertices = mc_list_create(sizeof(vertex_t));
+	array_list_t vertices = mc_list_create(sizeof(float));
 	for (int j = 0; j < CHUNK_WY; j += 16)
 	{
-		vertex_t to_add[24];
+		float to_add[72];
 		graphics_primitive_cube((vector3_t) { 0, (float)j, 0 }, (vector3_t) { 16, 16, 16 }, to_add);
-		mc_list_array_add(vertices, mc_list_count(vertices), to_add, sizeof * to_add, 24);
+		mc_list_array_add(vertices, mc_list_count(vertices), to_add, sizeof * to_add, 72);
 	}
-	debug_chunk_border = graphics_buffer_create(mc_list_array(vertices), mc_list_count(vertices), STANDARD_VERTEX);
+	debug_chunk_border = graphics_buffer_create(mc_list_array(vertices), mc_list_count(vertices) / 3, POSITION_VERTEX);
 	mc_list_destroy(&vertices);
 }
 
@@ -436,8 +437,9 @@ void world_block_debug(block_coords_t coords, FILE* stream)
 		}
 	}
 
-	fprintf(stream, "(%i, %i, %i), chunk %i (%i, %i). Block name \"%s,\" block id: %i. Liquid strength: %i, liquid push: (%f, %f, %f)\n", 
-		coords.x, coords.y, coords.z, i, chunk->x, chunk->z, name, id, world_liquid_strength(coords), push.x, push.y, push.z);
+	float angle = atan2f(push.z, push.x);
+	fprintf(stream, "(%i, %i, %i), chunk %i (%i, %i). Block name \"%s,\" block id: %i. Liquid strength: %i, push: (%f, %f, %f), angle: %f deg\n", 
+		coords.x, coords.y, coords.z, i, chunk->x, chunk->z, name, id, world_liquid_strength(coords), push.x, push.y, push.z, RADIANS_TO_DEGREES(angle));
 }
 
 void world_update(float delta)
@@ -446,7 +448,7 @@ void world_update(float delta)
 	entity_player_update(&player, delta);
 
 	struct chunk* player_chunk = world_chunk_get((int)aabb_get_center(player.hitbox).x, (int)aabb_get_center(player.hitbox).z);
-	if (player_chunk)
+	if (player_chunk && !entity_player_is_noclipping(&player))
 	{
 		for (int i = 0; i < mc_list_count(player_chunk->flowing_liquid); i++)
 		{
@@ -466,19 +468,27 @@ void world_update(float delta)
 	ticks++;
 }
 
-void world_render(float delta)
+void world_render(const shader_t solid, const shader_t liquid, float delta)
 {
+	graphics_shader_use(solid);
+	camera_activate();
 	for (int i = 0; i < mc_list_count(chunk_list); i++)
 	{
 		struct chunk* chunk = MC_LIST_CAST_GET(chunk_list, i, struct chunk);
 		world_chunk_clean_mesh(i);
 
-		/* Two transforms being generated is temporary. When a real water shader is made, this isn't needed */
 		matrix_t transform;
-		matrix_translation((vector3_t) { (float)chunk->x, -0.125F, (float)chunk->z }, transform);
+		matrix_translation((vector3_t) { (float)chunk->x, 0.0F, (float)chunk->z }, transform);
 		graphics_shader_matrix("model", transform);
 		graphics_buffer_draw(chunk->opaque_buffer);
+	}
 
+	graphics_shader_use(liquid);
+	camera_activate();
+	for (int i = 0; i < mc_list_count(chunk_list); i++)
+	{
+		struct chunk* chunk = MC_LIST_CAST_GET(chunk_list, i, struct chunk);
+		matrix_t transform;
 		matrix_translation((vector3_t) { (float)chunk->x, 0.0F, (float)chunk->z }, transform);
 		graphics_shader_matrix("model", transform);
 		graphics_buffer_draw(chunk->liquid_buffer);
@@ -493,7 +503,6 @@ void world_render(float delta)
 		graphics_debug_queue_buffer((debug_buffer_t)
 		{
 			.vertex = debug_chunk_border,
-			.color = COLOR_CREATE(255, 0, 0),
 			.position = player_pos
 		});
 	}

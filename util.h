@@ -419,6 +419,62 @@ extern inline void matrix_translation(vector3_t vec, matrix_t res)
 	INDEX_MATRIX(res, 3, 2) = vec.z;
 }
 
+/* Creates matrix scaling using vector "scale" */
+extern inline void matrix_scale(vector3_t scale, matrix_t res)
+{
+	memset(res, 0, sizeof(matrix_t));
+
+	INDEX_MATRIX(res, 0, 0) = scale.x;
+	INDEX_MATRIX(res, 1, 1) = scale.y;
+	INDEX_MATRIX(res, 2, 2) = scale.z;
+	INDEX_MATRIX(res, 3, 3) = 1.0F;
+}
+
+/* Creates matrix rotating the X axis, angle is in radians */
+extern inline void matrix_rotate_x(float angle, matrix_t res)
+{
+	memset(res, 0, sizeof(matrix_t));
+	float _sin = sinf(angle),
+		_cos = cosf(angle);
+
+	INDEX_MATRIX(res, 0, 0) = 1.0F;
+	INDEX_MATRIX(res, 1, 1) = _cos;
+	INDEX_MATRIX(res, 1, 2) = -_sin;
+	INDEX_MATRIX(res, 2, 1) = _sin;
+	INDEX_MATRIX(res, 2, 2) = _cos;
+	INDEX_MATRIX(res, 3, 3) = 1.0F;
+}
+
+/* Creates matrix rotating the Y axis, angle is in radians */
+extern inline void matrix_rotate_y(float angle, matrix_t res)
+{
+	memset(res, 0, sizeof(matrix_t));
+	float _sin = sinf(angle),
+		_cos = cosf(angle);
+
+	INDEX_MATRIX(res, 0, 0) = _cos;
+	INDEX_MATRIX(res, 0, 2) = _sin;
+	INDEX_MATRIX(res, 1, 1) = 1.0F;
+	INDEX_MATRIX(res, 2, 0) = -_sin;
+	INDEX_MATRIX(res, 2, 2) = _cos;
+	INDEX_MATRIX(res, 3, 3) = 1.0F;
+}
+
+/* Creates matrix rotating the Z axis, angle is in radians */
+extern inline void matrix_rotate_z(float angle, matrix_t res)
+{
+	memset(res, 0, sizeof(matrix_t));
+	float _sin = sinf(angle),
+		_cos = cosf(angle);
+
+	INDEX_MATRIX(res, 0, 0) = _cos;
+	INDEX_MATRIX(res, 0, 1) = -_sin;
+	INDEX_MATRIX(res, 1, 0) = _sin;
+	INDEX_MATRIX(res, 1, 1) = _cos;
+	INDEX_MATRIX(res, 2, 2) = 1.0F;
+	INDEX_MATRIX(res, 3, 3) = 1.0F;
+}
+
 typedef enum axis
 {
 	AXIS_X,
