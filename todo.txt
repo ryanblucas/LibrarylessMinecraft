@@ -1,7 +1,5 @@
 In order:
 	Fix liquid updating
-	Breaking blocks on the edge of a chunk doesn't update the neighboring
-		chunks mesh, which means you can see through the world
 	Separate graphics_debug from graphics
 	Further speed up meshing chunks and generating them
 
