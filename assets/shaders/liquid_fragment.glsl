@@ -7,4 +7,5 @@ uniform sampler2D sampler;
 void main()
 {
 	color = texture(sampler, tex_pos);
+	color.a = 0.7F;
 }

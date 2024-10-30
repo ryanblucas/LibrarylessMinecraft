@@ -100,7 +100,8 @@ ray_t world_ray_cast(vector3_t start, vector3_t direction, float len, ray_settin
 		.len = len,
 		.settings = settings
 	};
-	world_region_loop(vector_to_block_coords(start), vector_to_block_coords(state.curr.max), world_raycast_loop, &state);
+	direction = vector3_mul_scalar(direction, 10.0F); /* Band-aid? its really just a rounding issue TO DO */
+	world_region_loop(vector_to_block_coords(vector3_sub(start, direction)), vector_to_block_coords(vector3_add(state.curr.max, direction)), world_raycast_loop, &state);
 	return state.curr;
 }
 
@@ -402,10 +403,33 @@ void world_block_set(block_coords_t coords, block_type_t type)
 		chunk = world_chunk_create(coords.x, coords.z);
 	}
 
+	world_block_update((block_coords_t) { coords.x, coords.y, coords.z });
+
 	chunk->arr[CHUNK_INDEX_OF(coords.x - chunk->x, coords.y, coords.z - chunk->z)] = type;
 	chunk->dirty_mask |= OPAQUE_BIT;
-	
-	world_block_update((block_coords_t) { coords.x, coords.y, coords.z });
+
+	struct chunk* neighbor = NULL;
+	if (coords.x - chunk->x == 0)
+	{
+		neighbor = world_chunk_get(coords.x - 1, coords.z);
+	}
+	else if (coords.x - chunk->x == 15)
+	{
+		neighbor = world_chunk_get(coords.x + 1, coords.z);
+	}
+	else if (coords.z - chunk->z == 0)
+	{
+		neighbor = world_chunk_get(coords.x, coords.z - 1);
+	}
+	else if (coords.z - chunk->z == 15)
+	{
+		neighbor = world_chunk_get(coords.x, coords.z + 1);
+	}
+	assert(neighbor != chunk);
+	if (neighbor)
+	{
+		neighbor->dirty_mask |= OPAQUE_BIT;
+	}
 }
 
 void world_block_debug(block_coords_t coords, FILE* stream)
@@ -497,9 +521,9 @@ void world_render(const shader_t solid, const shader_t liquid, float delta)
 	if (display_debug_chunk_border)
 	{
 		vector3_t player_pos = aabb_get_center(player.hitbox);
-		player_pos.x = ROUND_DOWN(player_pos.x, CHUNK_WX);
+		player_pos.x = ROUND_DOWN(round(player_pos.x), CHUNK_WX);
 		player_pos.y = 0.0F;
-		player_pos.z = ROUND_DOWN(player_pos.z, CHUNK_WZ);
+		player_pos.z = ROUND_DOWN(round(player_pos.z), CHUNK_WZ);
 		graphics_debug_queue_buffer((debug_buffer_t)
 		{
 			.vertex = debug_chunk_border,

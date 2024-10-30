@@ -139,7 +139,7 @@ static void world_chunk_clean_opaque(struct chunk* chunk)
 			continue;
 		}
 		curr--;
-		if ((x == 0 && !IS_SOLID(CHUNK_AT(left, 15, y, z))) || !IS_SOLID(CHUNK_AT(arr, x - 1, y, z)))
+		if ((x == 0 && !IS_SOLID(CHUNK_AT(left, CHUNK_WX - 1, y, z))) || !IS_SOLID(CHUNK_AT(arr, x - 1, y, z)))
 		{
 			world_mesh_quad(mask, curr, LEFT);
 		}
@@ -155,7 +155,7 @@ static void world_chunk_clean_opaque(struct chunk* chunk)
 		{
 			world_mesh_quad(mask, curr, DOWN);
 		}
-		if ((z == 0 && !IS_SOLID(CHUNK_AT(backward, x, y, 15))) || !IS_SOLID(CHUNK_AT(arr, x, y, z - 1)))
+		if ((z == 0 && !IS_SOLID(CHUNK_AT(backward, x, y, CHUNK_WZ - 1))) || !IS_SOLID(CHUNK_AT(arr, x, y, z - 1)))
 		{
 			world_mesh_quad(mask, curr, BACKWARD);
 		}
@@ -170,12 +170,12 @@ static void world_chunk_clean_opaque(struct chunk* chunk)
 	chunk->dirty_mask ^= OPAQUE_BIT;
 }
 
-static void world_mesh_flowing_water(int mask, int strength, int angle, enum quad_normal normal)
+static void world_mesh_flowing_water(int mask, int strength, enum quad_normal normal)
 {
 	vertex_t a, b, c, d;
 	float s = 1 - ((7 - strength) + 1) / 8.0F;
 	switch (normal)
-	{/*
+	{
 	case LEFT:
 		c = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask),		CHUNK_FZ(mask) };
 		b = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask),		CHUNK_FZ(mask) + 1 };
@@ -193,13 +193,13 @@ static void world_mesh_flowing_water(int mask, int strength, int angle, enum qua
 		b = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask),		CHUNK_FZ(mask) };
 		a = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask),		CHUNK_FZ(mask) + 1 };
 		d = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask),		CHUNK_FZ(mask) + 1 };
-		break;*/
+		break;
 	case DOWN:
 		a = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask) + s,	CHUNK_FZ(mask) };
 		b = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask) + s,	CHUNK_FZ(mask) };
 		c = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask) + s,	CHUNK_FZ(mask) + 1 };
 		d = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask) + s,	CHUNK_FZ(mask) + 1 };
-		break;/*
+		break;
 	case FORWARD:
 		c = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask),		CHUNK_FZ(mask) + 1 };
 		b = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask),		CHUNK_FZ(mask) + 1 };
@@ -211,37 +211,54 @@ static void world_mesh_flowing_water(int mask, int strength, int angle, enum qua
 		b = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask),		CHUNK_FZ(mask) };
 		c = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask) + s,	CHUNK_FZ(mask) };
 		d = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask) + s,	CHUNK_FZ(mask) };
-		break; */
+		break;
 	default:
 		return;
 	}
 
+	/* //TO DO: This slants the water according to the direction ((int)round(RADIANS_TO_DEGREES(atan2f(liquid->push.z, liquid->push.x)) / 45) * 45)
 	if (strength < 7)
 	{
 		switch (angle)
 		{
+		case -135:
+			d.y += 0.125F;
+			b.y += 0.125F;
+			c.y += 0.25F;
+			break;
 		case -90:
 			c.y += 0.125F;
 			d.y += 0.125F;
 			break;
 		case -45:
-			b.y -= 0.125F;
-			d.y += 0.125F;
+			a.y += 0.125F;
+			c.y += 0.125F;
+			d.y += 0.25F;
 			break;
 		case 0:
 			a.y += 0.125F;
 			d.y += 0.125F;
 			break;
+		case 45:
+			b.y += 0.125F;
+			d.y += 0.125F;
+			a.y += 0.25F;
+			break;
 		case 90:
 			a.y += 0.125F;
 			b.y += 0.125F;
+			break;
+		case 135:
+			c.y += 0.125F;
+			a.y += 0.125F;
+			b.y += 0.25F;
 			break;
 		case 180:
 			b.y += 0.125F;
 			c.y += 0.125F;
 			break;
 		}
-	}
+	}*/
 
 	if (normal & FLIPPED_BIT)
 	{
@@ -286,13 +303,12 @@ static void world_chunk_clean_liquid(struct chunk* chunk)
 		liquid_t* liquid = MC_LIST_CAST_GET(chunk->flowing_liquid, i, liquid_t);
 		int mask = CHUNK_INDEX_OF(liquid->position.x - chunk->x, liquid->position.y, liquid->position.z - chunk->z);
 		int strength = liquid->came_from_above ? 8 : liquid->strength;
-		int angle = (int)RADIANS_TO_DEGREES(atan2f(liquid->push.z, liquid->push.x));
-		world_mesh_flowing_water(mask, strength, angle, LEFT);
-		world_mesh_flowing_water(mask, strength, angle, RIGHT);
-		world_mesh_flowing_water(mask, strength, angle, BACKWARD);
-		world_mesh_flowing_water(mask, strength, angle, FORWARD);
-		world_mesh_flowing_water(mask, strength, angle, UP);
-		world_mesh_flowing_water(mask, strength, angle, DOWN);
+		world_mesh_flowing_water(mask, strength, LEFT);
+		world_mesh_flowing_water(mask, strength, RIGHT);
+		world_mesh_flowing_water(mask, strength, BACKWARD);
+		world_mesh_flowing_water(mask, strength, FORWARD);
+		world_mesh_flowing_water(mask, strength, UP);
+		world_mesh_flowing_water(mask, strength, DOWN);
 	}
 
 	graphics_buffer_modify(chunk->liquid_buffer, list->array, list->count);

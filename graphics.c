@@ -55,6 +55,9 @@ void graphics_init(void)
 {
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
+	glEnable(GL_BLEND);
+
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glCullFace(GL_FRONT);
 
 	line_shader = graphics_shader_load("assets/shaders/line_vertex.glsl", "assets/shaders/line_fragment.glsl");
@@ -466,10 +469,10 @@ static inline int graphics_debug_add_primitive(int length, hash_t hash)
 	};
 	mc_list_add(primitives, mc_list_count(primitives), &next, sizeof next);
 
-	if (final_end >= debug_buffer.reserved)
+	if (final_end + length >= debug_buffer.reserved)
 	{
 		graphics_buffer_bind(&debug_buffer);
-		int old_reserved = debug_buffer.reserved * sizeof(float);
+		int old_reserved = debug_buffer.reserved * sizeof(float) * 3;
 		float* data = mc_malloc(old_reserved);
 		glGetBufferSubData(GL_ARRAY_BUFFER, 0, old_reserved, data);
 
