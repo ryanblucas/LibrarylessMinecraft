@@ -31,7 +31,7 @@ void world_init(void)
 		graphics_primitive_cube((vector3_t) { 0, (float)j, 0 }, (vector3_t) { 16, 16, 16 }, to_add);
 		mc_list_array_add(vertices, mc_list_count(vertices), to_add, sizeof * to_add, 72);
 	}
-	debug_chunk_border = graphics_buffer_create(mc_list_array(vertices), mc_list_count(vertices) / 3, POSITION_VERTEX);
+	debug_chunk_border = graphics_buffer_create(mc_list_array(vertices), mc_list_count(vertices) / 3, VERTEX_POSITION);
 	mc_list_destroy(&vertices);
 }
 
@@ -357,16 +357,6 @@ static void world_liquid_try_tick(block_coords_t coords)
 
 static void world_block_tick(void)
 {
-	/* TEMPORARY FIX FOR WATER *TO DO* -- this is slow and makes water clean in a random way */
-	for (int i = 0; i < mc_list_count(chunk_list); i++)
-	{
-		array_list_t water = MC_LIST_CAST_GET(chunk_list, i, struct chunk)->flowing_liquid;
-		for (int j = 0; j < mc_list_count(water); j++)
-		{
-			world_block_update(MC_LIST_CAST_GET(water, j, liquid_t)->position);
-		}
-	}
-
 	update_list_start = mc_list_count(update_list);
 	for (int i = update_list_start - 1; i >= 0; i--)
 	{
@@ -468,6 +458,19 @@ void world_block_debug(block_coords_t coords, FILE* stream)
 
 void world_update(float delta)
 {
+	if (window_input_clicked(INPUT_QUEUE_BLOCK_INFO))
+	{
+		block_coords_t bc = world_ray_cast(camera_position(), camera_forward(), 16.0F, RAY_SOLID | RAY_LIQUID).block;
+		GRAPHICS_DEBUG_SET_BLOCK(bc);
+		world_block_debug(bc, stderr);
+	}
+	if (window_input_clicked(INPUT_UPDATE_BLOCK))
+	{
+		block_coords_t bc = world_ray_cast(camera_position(), camera_forward(), 16.0F, RAY_SOLID | RAY_LIQUID).block;
+		GRAPHICS_DEBUG_SET_BLOCK(bc);
+		world_block_update(bc);
+	}
+
 	world_block_tick();
 	entity_player_update(&player, delta);
 

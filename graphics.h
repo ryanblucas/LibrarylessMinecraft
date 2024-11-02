@@ -36,10 +36,10 @@ typedef struct debug_vertex
 
 typedef enum vertex_type
 {
-	BLOCK_VERTEX,		/* Expects array of block_vertex_t */
-	STANDARD_VERTEX,	/* Expects array of vertex_t */
-	POSITION_VERTEX,	/* Expects array of floats, three making up one position */
-	DEBUG_VERTEX		/* Expects array of debug_vertex_t */
+	VERTEX_BLOCK,		/* Expects array of block_vertex_t */
+	VERTEX_STANDARD,	/* Expects array of vertex_t */
+	VERTEX_POSITION,	/* Expects array of floats, three making up one position */
+	VERTEX_DEBUG		/* Expects array of debug_vertex_t */
 } vertex_type_t;
 
 #define CREATE_BLOCK_VERTEX_POS(x, y, z)			((x) | ((z) << 5) | ((y) << 10))
@@ -80,7 +80,7 @@ vertex_buffer_t graphics_buffer_create(const void* start, int len, vertex_type_t
 void graphics_buffer_modify(vertex_buffer_t buffer, const void* buf, int len);
 /* Deletes the vertex buffer and sets the pointer to NULL */
 void graphics_buffer_delete(vertex_buffer_t* buffer);
-/* Draws vertex buffer with current shader. */
+/* Draws vertex buffer w/ GL_TRIANGLES with current shader. */
 void graphics_buffer_draw(vertex_buffer_t buffer);
 
 #define GRAPHICS_DEBUG_SET_BLOCK(coords) graphics_debug_set_cube(block_coords_to_vector(coords), (vector3_t) { 1.0F, 1.0F, 1.0F })
@@ -97,11 +97,12 @@ void graphics_debug_clear(void);
 /* Sets line to draw from "begin" to "end" */
 void graphics_debug_set_line(vector3_t begin, vector3_t end);
 /* Calculates a cube given its position and dimensions and stores in out */
-void graphics_primitive_cube(vector3_t pos, vector3_t dim, vertex_t out[24]);
+void graphics_primitive_cube(vector3_t pos, vector3_t dim, float out[72]);
 /* Sets cube to draw at "pos" with dimensions "dim" */
 void graphics_debug_set_cube(vector3_t pos, vector3_t dim);
 /* Draws debug buffer */
 void graphics_debug_draw(void);
 /* Draws a vertex buffer using the debug shader. This does not immediately draw the buffer,
-	it instead waits till graphics_debug_draw is called to preserve any active shader state. */
+	it instead waits till graphics_debug_draw is called to preserve any active shader state.
+	This vertex buffer is drawn using GL_LINES as opposed to graphics_buffer_draw's GL_TRIANGLES. */
 void graphics_debug_queue_buffer(debug_buffer_t buffer);

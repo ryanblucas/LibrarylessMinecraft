@@ -15,27 +15,27 @@
 /* Implementation of an array list: an array that once its capacity--reserved--is reached, it reallocates and doubles its capacity. */
 typedef struct array_list* array_list_t;
 
-#define MC_LIST_CAST_GET(list, index, type)	(assert(sizeof(type) == mc_list_element_size(list) && (index) >= 0 && (index) < mc_list_count(list)), (type*)mc_list_array(list) + (index))
+#define MC_LIST_CAST_GET(block_vertex_list, index, type)	(assert(sizeof(type) == mc_list_element_size(block_vertex_list) && (index) >= 0 && (index) < mc_list_count(block_vertex_list)), (type*)mc_list_array(block_vertex_list) + (index))
 
 /* Get amount of elements in list */
-int mc_list_count(const array_list_t list);
+int mc_list_count(const array_list_t block_vertex_list);
 /* Get size of each element in list */
-size_t mc_list_element_size(const array_list_t list);
+size_t mc_list_element_size(const array_list_t block_vertex_list);
 /* Get raw array of elements */
-void* mc_list_array(array_list_t list);
+void* mc_list_array(array_list_t block_vertex_list);
 
 /* Creates an array list with name and size of each element. */
 array_list_t mc_list_create(size_t element_size);
 /* Destroys list pointed at by parameter, setting parameter to NULL afterwards */
-void mc_list_destroy(array_list_t* list);
+void mc_list_destroy(array_list_t* block_vertex_list);
 /* Adds an element to the array list. You may reserve an element by passing NULL to pelement and write to it with the pointer from mc_list_array. Returns index that was added */
-int mc_list_add(array_list_t list, int index, const void* pelement, size_t element_size);
+int mc_list_add(array_list_t block_vertex_list, int index, const void* pelement, size_t element_size);
 /* Removes an element from the array list and writes to out if not NULL. Returns index that was deleted */
-int mc_list_remove(array_list_t list, int index, void* out, size_t element_size);
+int mc_list_remove(array_list_t block_vertex_list, int index, void* out, size_t element_size);
 /* Splices an array list */
-void mc_list_splice(array_list_t list, int start, int count);
+void mc_list_splice(array_list_t block_vertex_list, int start, int count);
 /* Appends array to list at index. element_size is the size of each of arr's elements in bytes, arr_size is the count of those elements--NOT in bytes. */
-void mc_list_array_add(array_list_t list, int index, void* arr, size_t element_size, int arr_size);
+void mc_list_array_add(array_list_t block_vertex_list, int index, void* arr, size_t element_size, int arr_size);
 
 #define ROUND_DOWN(c, m) (((c) < 0 ? -((int)(-(c) - 1 + (m)) / (int)(m)) : (int)(c) / (int)(m)) * (m))
 

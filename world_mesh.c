@@ -19,24 +19,17 @@ enum quad_normal
 	FLIPPED_BIT = 0b100
 };
 
-static struct vertex_array_list
+static struct block_vertex_list
 {
 	size_t reserved, count;
-	uint32_t array[]; /* This list can be float/block_vertex_t */
-} *list;
+	block_vertex_t array[];
+} *block_vertex_list;
 
-static inline void world_mesh_check_reserve(size_t elem_size)
+static struct vertex_list
 {
-	if (list->count + 6 >= list->reserved)
-	{
-		size_t old_size = sizeof * list + elem_size * list->reserved;
-		struct vertex_array_list* prev = list;
-		list = mc_malloc(old_size + elem_size * list->reserved);
-		memcpy(list, prev, old_size);
-		list->reserved *= 2;
-		free(prev);
-	}
-}
+	size_t reserved, count;
+	vertex_t array[];
+} *vertex_list;
 
 static void world_mesh_quad(int mask, int type, enum quad_normal normal)
 {
@@ -99,16 +92,24 @@ static void world_mesh_quad(int mask, int type, enum quad_normal normal)
 		d = SET_BLOCK_VERTEX_TEXTURE(d, 1, 1, type);
 	}
 
-	size_t curr = list->count;
-	list->count += 6;
-	list->array[curr + 0] = a;
-	list->array[curr + 1] = b;
-	list->array[curr + 2] = c;
-	list->array[curr + 3] = c;
-	list->array[curr + 4] = d;
-	list->array[curr + 5] = a;
+	size_t curr = block_vertex_list->count;
+	block_vertex_list->count += 6;
+	block_vertex_list->array[curr + 0] = a;
+	block_vertex_list->array[curr + 1] = b;
+	block_vertex_list->array[curr + 2] = c;
+	block_vertex_list->array[curr + 3] = c;
+	block_vertex_list->array[curr + 4] = d;
+	block_vertex_list->array[curr + 5] = a;
 
-	world_mesh_check_reserve(sizeof(block_vertex_t));
+	if (block_vertex_list->count + 6 >= block_vertex_list->reserved)
+	{
+		size_t old_size = sizeof * block_vertex_list + sizeof * block_vertex_list->array * block_vertex_list->reserved;
+		struct block_vertex_list* prev = block_vertex_list;
+		block_vertex_list = mc_malloc(old_size + sizeof * block_vertex_list->array * block_vertex_list->reserved);
+		memcpy(block_vertex_list, prev, old_size);
+		block_vertex_list->reserved *= 2;
+		free(prev);
+	}
 }
 
 static inline const block_type_t* world_chunk_get_array_or_default(int x, int z, const block_type_t* def)
@@ -165,8 +166,8 @@ static void world_chunk_clean_opaque(struct chunk* chunk)
 		}
 	}
 
-	graphics_buffer_modify(chunk->opaque_buffer, list->array, list->count);
-	list->count = 0;
+	graphics_buffer_modify(chunk->opaque_buffer, block_vertex_list->array, block_vertex_list->count);
+	block_vertex_list->count = 0;
 	chunk->dirty_mask ^= OPAQUE_BIT;
 }
 
@@ -216,50 +217,6 @@ static void world_mesh_flowing_water(int mask, int strength, enum quad_normal no
 		return;
 	}
 
-	/* //TO DO: This slants the water according to the direction ((int)round(RADIANS_TO_DEGREES(atan2f(liquid->push.z, liquid->push.x)) / 45) * 45)
-	if (strength < 7)
-	{
-		switch (angle)
-		{
-		case -135:
-			d.y += 0.125F;
-			b.y += 0.125F;
-			c.y += 0.25F;
-			break;
-		case -90:
-			c.y += 0.125F;
-			d.y += 0.125F;
-			break;
-		case -45:
-			a.y += 0.125F;
-			c.y += 0.125F;
-			d.y += 0.25F;
-			break;
-		case 0:
-			a.y += 0.125F;
-			d.y += 0.125F;
-			break;
-		case 45:
-			b.y += 0.125F;
-			d.y += 0.125F;
-			a.y += 0.25F;
-			break;
-		case 90:
-			a.y += 0.125F;
-			b.y += 0.125F;
-			break;
-		case 135:
-			c.y += 0.125F;
-			a.y += 0.125F;
-			b.y += 0.25F;
-			break;
-		case 180:
-			b.y += 0.125F;
-			c.y += 0.125F;
-			break;
-		}
-	}*/
-
 	if (normal & FLIPPED_BIT)
 	{
 		/* -1 for air */
@@ -285,15 +242,22 @@ static void world_mesh_flowing_water(int mask, int strength, enum quad_normal no
 		d.ty = 1.0F;
 	}
 
-	vertex_t* arr = (vertex_t*)list->array;
-	arr[list->count++] = a;
-	arr[list->count++] = b;
-	arr[list->count++] = c;
-	arr[list->count++] = c;
-	arr[list->count++] = d;
-	arr[list->count++] = a;
+	vertex_list->array[vertex_list->count++] = a;
+	vertex_list->array[vertex_list->count++] = b;
+	vertex_list->array[vertex_list->count++] = c;
+	vertex_list->array[vertex_list->count++] = c;
+	vertex_list->array[vertex_list->count++] = d;
+	vertex_list->array[vertex_list->count++] = a;
 
-	world_mesh_check_reserve(sizeof(vertex_t));
+	if (vertex_list->count + 6 >= vertex_list->reserved)
+	{
+		size_t old_size = sizeof * vertex_list + sizeof * vertex_list->array * vertex_list->reserved;
+		struct vertex_list* prev = vertex_list;
+		vertex_list = mc_malloc(old_size + sizeof * vertex_list->array * vertex_list->reserved);
+		memcpy(vertex_list, prev, old_size);
+		vertex_list->reserved *= 2;
+		free(prev);
+	}
 }
 
 static void world_chunk_clean_liquid(struct chunk* chunk)
@@ -311,8 +275,8 @@ static void world_chunk_clean_liquid(struct chunk* chunk)
 		world_mesh_flowing_water(mask, strength, DOWN);
 	}
 
-	graphics_buffer_modify(chunk->liquid_buffer, list->array, list->count);
-	list->count = 0;
+	graphics_buffer_modify(chunk->liquid_buffer, vertex_list->array, vertex_list->count);
+	vertex_list->count = 0;
 	chunk->dirty_mask ^= LIQUID_BIT;
 }
 
@@ -321,11 +285,18 @@ void world_chunk_clean_mesh(int index)
 	/*	This is NOT a greedy mesher. That's because texture wrapping is impossible with texture atlases, but using
 		texture arrays with a greedy mesher fixes that problem AND the mipmapping problem. Just a thought, TO DO */
 
-	if (!list)
+	if (!block_vertex_list)
 	{
-		list = mc_malloc(sizeof * list + sizeof * list->array * 36);
-		list->reserved = 36;
-		list->count = 0;
+		block_vertex_list = mc_malloc(sizeof * block_vertex_list + sizeof * block_vertex_list->array * 36);
+		block_vertex_list->reserved = 36;
+		block_vertex_list->count = 0;
+	}
+
+	if (!vertex_list)
+	{
+		vertex_list = mc_malloc(sizeof * vertex_list + sizeof * vertex_list->array * 36);
+		vertex_list->reserved = 36;
+		vertex_list->count = 0;
 	}
 
 	struct chunk* chunk = MC_LIST_CAST_GET(chunk_list, index, struct chunk);

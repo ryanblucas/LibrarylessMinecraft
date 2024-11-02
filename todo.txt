@@ -1,6 +1,7 @@
 In order:
 	Fix liquid updating
 	Separate graphics_debug from graphics
+	Add color to debug primitives
 	Further speed up meshing chunks and generating them
 
 	Frustum culling

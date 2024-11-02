@@ -65,7 +65,7 @@ void graphics_init(void)
 	glGenVertexArrays(1, &debug_buffer.vao);
 	glGenBuffers(1, &debug_buffer.vbo);
 	debug_buffer.reserved = 64 * 24;
-	debug_buffer.type = POSITION_VERTEX;
+	debug_buffer.type = VERTEX_POSITION;
 	primitives = mc_list_create(sizeof(struct debug_primitive));
 
 	glBindVertexArray(debug_buffer.vao);
@@ -88,7 +88,7 @@ void graphics_init(void)
 		{ 0, 0, 0, COLOR_CREATE(0, 0, 255) },
 		{ 1, 0, 0, COLOR_CREATE(0, 0, 255) },
 	};
-	axis_buffer = graphics_buffer_create(axis_lines, 6, DEBUG_VERTEX);
+	axis_buffer = graphics_buffer_create(axis_lines, 6, VERTEX_DEBUG);
 }
 
 void graphics_destroy(void)
@@ -362,24 +362,24 @@ vertex_buffer_t graphics_buffer_create(const void* start, int len, vertex_type_t
 
 	switch (type)
 	{
-	case BLOCK_VERTEX:
+	case VERTEX_BLOCK:
 		glBufferData(GL_ARRAY_BUFFER, len * sizeof(block_vertex_t), start, GL_STATIC_DRAW);
 		glEnableVertexAttribArray(0);
 		glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, sizeof(block_vertex_t), (void*)0);
 		break;
-	case STANDARD_VERTEX:
+	case VERTEX_STANDARD:
 		glBufferData(GL_ARRAY_BUFFER, len * sizeof(vertex_t), start, GL_STATIC_DRAW);
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*)0);
 		glEnableVertexAttribArray(1);
 		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*)(sizeof(float) * 3));
 		break;
-	case POSITION_VERTEX:
+	case VERTEX_POSITION:
 		glBufferData(GL_ARRAY_BUFFER, len * sizeof(float) * 3, start, GL_STATIC_DRAW);
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
 		break;
-	case DEBUG_VERTEX:
+	case VERTEX_DEBUG:
 		glBufferData(GL_ARRAY_BUFFER, len * sizeof(debug_vertex_t), start, GL_STATIC_DRAW);
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(debug_vertex_t), (void*)0);
@@ -397,7 +397,18 @@ vertex_buffer_t graphics_buffer_create(const void* start, int len, vertex_type_t
 
 void graphics_buffer_modify(vertex_buffer_t buffer, const void* buf, int len)
 {
-	size_t element_size = buffer->type == BLOCK_VERTEX ? sizeof(block_vertex_t) : sizeof(vertex_t);
+	size_t element_size;
+	switch (buffer->type)
+	{
+	case VERTEX_BLOCK: element_size = sizeof(block_vertex_t); break;
+	case VERTEX_STANDARD: element_size = sizeof(vertex_t); break;
+	case VERTEX_POSITION: element_size = sizeof(float) * 3; break;
+	case VERTEX_DEBUG: element_size = sizeof(debug_vertex_t); break;
+
+	default:
+		assert(false);
+	}
+
 	graphics_buffer_bind(buffer);
 	if (len > buffer->reserved)
 	{
@@ -620,5 +631,6 @@ void graphics_debug_draw(void)
 
 void graphics_debug_queue_buffer(debug_buffer_t buffer)
 {
+	assert(buffer.vertex->type == VERTEX_POSITION || buffer.vertex->type == VERTEX_DEBUG);
 	mc_list_add(user_debug_buffers, mc_list_count(user_debug_buffers), &buffer, sizeof buffer);
 }

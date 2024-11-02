@@ -67,8 +67,8 @@ struct chunk* world_chunk_create(int x_o, int z_o)
 	}
 
 	next->dirty_mask = OPAQUE_BIT;
-	next->opaque_buffer = graphics_buffer_create(NULL, 0, BLOCK_VERTEX);
-	next->liquid_buffer = graphics_buffer_create(NULL, 0, STANDARD_VERTEX);
+	next->opaque_buffer = graphics_buffer_create(NULL, 0, VERTEX_BLOCK);
+	next->liquid_buffer = graphics_buffer_create(NULL, 0, VERTEX_STANDARD);
 	return next;
 }
 
@@ -76,12 +76,12 @@ struct chunk* world_chunk_get(int x, int z)
 {
 	x = ROUND_DOWN(x, CHUNK_WX);
 	z = ROUND_DOWN(z, CHUNK_WZ);
-	struct chunk* list = mc_list_array(chunk_list);
+	struct chunk* block_vertex_list = mc_list_array(chunk_list);
 	for (int i = 0; i < mc_list_count(chunk_list); i++)
 	{
-		if (list[i].x == x && list[i].z == z)
+		if (block_vertex_list[i].x == x && block_vertex_list[i].z == z)
 		{
-			return &list[i];
+			return &block_vertex_list[i];
 		}
 	}
 	return NULL;

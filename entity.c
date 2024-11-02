@@ -138,13 +138,6 @@ void entity_player_update(entity_t* ent, float delta)
 			world_block_set(bc, to_place + 1);
 		}
 	}
-
-	if (window_input_clicked(INPUT_QUEUE_BLOCK_INFO))
-	{
-		block_coords_t bc = world_ray_cast(camera_position(), camera_forward(), 16.0F, RAY_SOLID | RAY_LIQUID).block;
-		GRAPHICS_DEBUG_SET_BLOCK(bc);
-		world_block_debug(bc, stderr);
-	}
 }
 
 bool entity_player_is_noclipping(const entity_t* ent)
