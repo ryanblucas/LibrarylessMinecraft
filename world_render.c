@@ -1,11 +1,16 @@
 /*
-	world_mesh.c ~ RL
-	Generates the mesh for a chunk
+	world_render.c ~ RL
+	Generates the mesh for a chunk and renders it
 */
 
 #define WORLD_INTERNAL
 #include "world.h"
 #include <assert.h>
+#include "camera.h"
+#include "window.h"
+
+static vertex_buffer_t debug_chunk_border;
+static bool display_debug_chunk_border;
 
 enum quad_normal
 {
@@ -307,5 +312,105 @@ void world_chunk_clean_mesh(int index)
 	if (chunk->dirty_mask & LIQUID_BIT)
 	{
 		world_chunk_clean_liquid(chunk);
+	}
+}
+
+void world_render_init(void)
+{
+	array_list_t vertices = mc_list_create(sizeof(float));
+	for (int j = 0; j < CHUNK_WY; j += 16)
+	{
+		float to_add[72];
+		graphics_primitive_cube((vector3_t) { 0, (float)j, 0 }, (vector3_t) { 16, 16, 16 }, to_add);
+		mc_list_array_add(vertices, mc_list_count(vertices), to_add, sizeof * to_add, 72);
+	}
+	debug_chunk_border = graphics_buffer_create(mc_list_array(vertices), mc_list_count(vertices) / 3, VERTEX_POSITION);
+	mc_list_destroy(&vertices);
+}
+
+void world_render_destroy(void)
+{
+	graphics_buffer_delete(&debug_chunk_border);
+}
+
+/* Frustum culls active chunk list. Do not free the list returned. */
+static array_list_t world_render_cull(void)
+{
+	static array_list_t to_render;
+	if (!to_render)
+	{
+		to_render = mc_list_create(sizeof(struct chunk*));
+	}
+	mc_list_splice(to_render, 0, mc_list_count(to_render));
+
+	for (int i = 0; i < mc_list_count(chunk_list); i++)
+	{
+		struct chunk* curr = MC_LIST_CAST_GET(chunk_list, i, struct chunk);
+		/* find max height of chunk */
+		aabb_t chunk = { .min = { curr->x, 0, curr->z }, .max = { CHUNK_WX, CHUNK_WY, CHUNK_WZ } };
+		if (camera_is_aabb_visible(chunk))
+		{
+			mc_list_add(to_render, mc_list_count(to_render), &curr, sizeof curr);
+		}
+	}
+
+	static int last_tick = -1;
+	if (last_tick != world_ticks())
+	{
+		last_tick = world_ticks();
+		if (window_input_clicked(INPUT_TOGGLE_CHUNK_BORDERS))
+		{
+			display_debug_chunk_border = !display_debug_chunk_border;
+		}
+		if (last_tick % 10 == 0)
+		{
+			printf("Original: %i, culled: %i\n", mc_list_count(chunk_list), mc_list_count(to_render));
+		}
+	}
+
+	return to_render;
+}
+
+void world_render(const shader_t solid, const shader_t liquid, float delta)
+{
+	array_list_t to_render = world_render_cull();
+
+	graphics_shader_use(solid);
+	matrix_t cam;
+	camera_view_projection(cam);
+	graphics_shader_matrix("camera", cam);
+	for (int i = 0; i < mc_list_count(to_render); i++)
+	{
+		struct chunk* chunk = *MC_LIST_CAST_GET(to_render, i, struct chunk*);
+		world_chunk_clean_mesh(i);
+
+		matrix_t transform;
+		matrix_translation((vector3_t) { (float)chunk->x, 0.0F, (float)chunk->z }, transform);
+		graphics_shader_matrix("model", transform);
+		graphics_buffer_draw(chunk->opaque_buffer);
+	}
+
+	graphics_shader_use(liquid);
+	graphics_shader_matrix("camera", cam);
+	for (int i = 0; i < mc_list_count(to_render); i++)
+	{
+		struct chunk* chunk = *MC_LIST_CAST_GET(to_render, i, struct chunk*);
+		matrix_t transform;
+		matrix_translation((vector3_t) { (float)chunk->x, 0.0F, (float)chunk->z }, transform);
+		graphics_shader_matrix("model", transform);
+		graphics_buffer_draw(chunk->liquid_buffer);
+	}
+
+	if (display_debug_chunk_border)
+	{
+		vector3_t player_pos = aabb_get_center(player.hitbox);
+		player_pos.x = ROUND_DOWN(round(player_pos.x), CHUNK_WX);
+		player_pos.y = 0.0F;
+		player_pos.z = ROUND_DOWN(round(player_pos.z), CHUNK_WZ);
+		graphics_debug_queue_buffer((debug_buffer_t)
+		{
+			.vertex = debug_chunk_border,
+				.position = player_pos
+		});
 	}
 }

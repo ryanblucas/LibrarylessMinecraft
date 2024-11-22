@@ -592,7 +592,9 @@ void graphics_debug_draw(void)
 		glEnable(GL_DEPTH_TEST);
 	}
 
-	camera_activate();
+	matrix_t view_projection;
+	camera_view_projection(view_projection);
+	graphics_shader_matrix("camera", view_projection);
 	graphics_shader_matrix("model", transform);
 
 	if (mc_list_count(primitives) > 0)

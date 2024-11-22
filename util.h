@@ -15,27 +15,27 @@
 /* Implementation of an array list: an array that once its capacity--reserved--is reached, it reallocates and doubles its capacity. */
 typedef struct array_list* array_list_t;
 
-#define MC_LIST_CAST_GET(block_vertex_list, index, type)	(assert(sizeof(type) == mc_list_element_size(block_vertex_list) && (index) >= 0 && (index) < mc_list_count(block_vertex_list)), (type*)mc_list_array(block_vertex_list) + (index))
+#define MC_LIST_CAST_GET(list, index, type)	(assert(sizeof(type) == mc_list_element_size(list) && (index) >= 0 && (index) < mc_list_count(list)), (type*)mc_list_array(list) + (index))
 
 /* Get amount of elements in list */
-int mc_list_count(const array_list_t block_vertex_list);
+int mc_list_count(const array_list_t list);
 /* Get size of each element in list */
-size_t mc_list_element_size(const array_list_t block_vertex_list);
+size_t mc_list_element_size(const array_list_t list);
 /* Get raw array of elements */
-void* mc_list_array(array_list_t block_vertex_list);
+void* mc_list_array(array_list_t list);
 
 /* Creates an array list with name and size of each element. */
 array_list_t mc_list_create(size_t element_size);
 /* Destroys list pointed at by parameter, setting parameter to NULL afterwards */
-void mc_list_destroy(array_list_t* block_vertex_list);
+void mc_list_destroy(array_list_t* list);
 /* Adds an element to the array list. You may reserve an element by passing NULL to pelement and write to it with the pointer from mc_list_array. Returns index that was added */
-int mc_list_add(array_list_t block_vertex_list, int index, const void* pelement, size_t element_size);
+int mc_list_add(array_list_t list, int index, const void* pelement, size_t element_size);
 /* Removes an element from the array list and writes to out if not NULL. Returns index that was deleted */
-int mc_list_remove(array_list_t block_vertex_list, int index, void* out, size_t element_size);
+int mc_list_remove(array_list_t list, int index, void* out, size_t element_size);
 /* Splices an array list */
-void mc_list_splice(array_list_t block_vertex_list, int start, int count);
+void mc_list_splice(array_list_t list, int start, int count);
 /* Appends array to list at index. element_size is the size of each of arr's elements in bytes, arr_size is the count of those elements--NOT in bytes. */
-void mc_list_array_add(array_list_t block_vertex_list, int index, void* arr, size_t element_size, int arr_size);
+void mc_list_array_add(array_list_t list, int index, void* arr, size_t element_size, int arr_size);
 
 #define ROUND_DOWN(c, m) (((c) < 0 ? -((int)(-(c) - 1 + (m)) / (int)(m)) : (int)(c) / (int)(m)) * (m))
 
@@ -145,7 +145,7 @@ extern inline bool float_adaptive_eq(float a, float b)
 #define VECTOR3_IDENTITY		((vector3_t){ 0, 0, 0 })
 #define RADIANS_TO_DEGREES(a)	((a) * 180 / (float)M_PI)
 #define DEGREES_TO_RADIANS(a)	((a) * (float)M_PI / 180)
-#define INDEX_MATRIX(m, r, c)	((m)[(r) * 4 + (c)])
+#define MAT4_AT(m, r, c)	((m)[(r) * 4 + (c)])
 
 /* Row-major float array of 16 elements/4x4. */
 typedef float matrix_t[16];
@@ -362,6 +362,19 @@ extern inline bool vector3_adaptive_eq(vector3_t a, vector3_t b)
 	return float_adaptive_eq(a.x, b.x) && float_adaptive_eq(a.y, b.y) && float_adaptive_eq(a.z, b.z);
 }
 
+extern inline vector3_t matrix_transform_vector3(const matrix_t mat, vector3_t vec)
+{
+	/* SIMD todo */
+	vec.reserved = 1.0F;
+	return (vector3_t)
+	{
+		MAT4_AT(mat, 0, 0) * vec.x + MAT4_AT(mat, 0, 1) * vec.y + MAT4_AT(mat, 0, 2) * vec.z + MAT4_AT(mat, 0, 3) * vec.reserved,
+		MAT4_AT(mat, 1, 0) * vec.x + MAT4_AT(mat, 1, 1) * vec.y + MAT4_AT(mat, 1, 2) * vec.z + MAT4_AT(mat, 1, 3) * vec.reserved,
+		MAT4_AT(mat, 2, 0) * vec.x + MAT4_AT(mat, 2, 1) * vec.y + MAT4_AT(mat, 2, 2) * vec.z + MAT4_AT(mat, 2, 3) * vec.reserved,
+		MAT4_AT(mat, 3, 0) * vec.x + MAT4_AT(mat, 3, 1) * vec.y + MAT4_AT(mat, 3, 2) * vec.z + MAT4_AT(mat, 3, 3) * vec.reserved,
+	};
+}
+
 /* Adds a with b and stores result in a. */
 extern inline void matrix_add(const matrix_t a, const matrix_t b, matrix_t res)
 {
@@ -389,10 +402,10 @@ extern inline void matrix_multiply(const matrix_t a, const matrix_t b, matrix_t 
 		row2 = _mm_load_ps(&b[8]),
 		row3 = _mm_load_ps(&b[12]);
 	for (int i = 0; i < 4; i++) {
-		__m128 col0 = _mm_set1_ps(INDEX_MATRIX(a, i, 0)),
-			col1 = _mm_set1_ps(INDEX_MATRIX(a, i, 1)),
-			col2 = _mm_set1_ps(INDEX_MATRIX(a, i, 2)),
-			col3 = _mm_set1_ps(INDEX_MATRIX(a, i, 3));
+		__m128 col0 = _mm_set1_ps(MAT4_AT(a, i, 0)),
+			col1 = _mm_set1_ps(MAT4_AT(a, i, 1)),
+			col2 = _mm_set1_ps(MAT4_AT(a, i, 2)),
+			col3 = _mm_set1_ps(MAT4_AT(a, i, 3));
 		__m128 row = _mm_add_ps(
 			_mm_add_ps(
 				_mm_mul_ps(col0, row0),
@@ -409,14 +422,14 @@ extern inline void matrix_translation(vector3_t vec, matrix_t res)
 {
 	memset(res, 0, sizeof(matrix_t));
 
-	INDEX_MATRIX(res, 0, 0) = 1.0F;
-	INDEX_MATRIX(res, 1, 1) = 1.0F;
-	INDEX_MATRIX(res, 2, 2) = 1.0F;
-	INDEX_MATRIX(res, 3, 3) = 1.0F;
+	MAT4_AT(res, 0, 0) = 1.0F;
+	MAT4_AT(res, 1, 1) = 1.0F;
+	MAT4_AT(res, 2, 2) = 1.0F;
+	MAT4_AT(res, 3, 3) = 1.0F;
 
-	INDEX_MATRIX(res, 3, 0) = vec.x;
-	INDEX_MATRIX(res, 3, 1) = vec.y;
-	INDEX_MATRIX(res, 3, 2) = vec.z;
+	MAT4_AT(res, 3, 0) = vec.x;
+	MAT4_AT(res, 3, 1) = vec.y;
+	MAT4_AT(res, 3, 2) = vec.z;
 }
 
 /* Creates matrix scaling using vector "scale" */
@@ -424,10 +437,10 @@ extern inline void matrix_scale(vector3_t scale, matrix_t res)
 {
 	memset(res, 0, sizeof(matrix_t));
 
-	INDEX_MATRIX(res, 0, 0) = scale.x;
-	INDEX_MATRIX(res, 1, 1) = scale.y;
-	INDEX_MATRIX(res, 2, 2) = scale.z;
-	INDEX_MATRIX(res, 3, 3) = 1.0F;
+	MAT4_AT(res, 0, 0) = scale.x;
+	MAT4_AT(res, 1, 1) = scale.y;
+	MAT4_AT(res, 2, 2) = scale.z;
+	MAT4_AT(res, 3, 3) = 1.0F;
 }
 
 /* Creates matrix rotating the X axis, angle is in radians */
@@ -437,12 +450,12 @@ extern inline void matrix_rotate_x(float angle, matrix_t res)
 	float _sin = sinf(angle),
 		_cos = cosf(angle);
 
-	INDEX_MATRIX(res, 0, 0) = 1.0F;
-	INDEX_MATRIX(res, 1, 1) = _cos;
-	INDEX_MATRIX(res, 1, 2) = -_sin;
-	INDEX_MATRIX(res, 2, 1) = _sin;
-	INDEX_MATRIX(res, 2, 2) = _cos;
-	INDEX_MATRIX(res, 3, 3) = 1.0F;
+	MAT4_AT(res, 0, 0) = 1.0F;
+	MAT4_AT(res, 1, 1) = _cos;
+	MAT4_AT(res, 1, 2) = -_sin;
+	MAT4_AT(res, 2, 1) = _sin;
+	MAT4_AT(res, 2, 2) = _cos;
+	MAT4_AT(res, 3, 3) = 1.0F;
 }
 
 /* Creates matrix rotating the Y axis, angle is in radians */
@@ -452,12 +465,12 @@ extern inline void matrix_rotate_y(float angle, matrix_t res)
 	float _sin = sinf(angle),
 		_cos = cosf(angle);
 
-	INDEX_MATRIX(res, 0, 0) = _cos;
-	INDEX_MATRIX(res, 0, 2) = _sin;
-	INDEX_MATRIX(res, 1, 1) = 1.0F;
-	INDEX_MATRIX(res, 2, 0) = -_sin;
-	INDEX_MATRIX(res, 2, 2) = _cos;
-	INDEX_MATRIX(res, 3, 3) = 1.0F;
+	MAT4_AT(res, 0, 0) = _cos;
+	MAT4_AT(res, 0, 2) = _sin;
+	MAT4_AT(res, 1, 1) = 1.0F;
+	MAT4_AT(res, 2, 0) = -_sin;
+	MAT4_AT(res, 2, 2) = _cos;
+	MAT4_AT(res, 3, 3) = 1.0F;
 }
 
 /* Creates matrix rotating the Z axis, angle is in radians */
@@ -467,12 +480,12 @@ extern inline void matrix_rotate_z(float angle, matrix_t res)
 	float _sin = sinf(angle),
 		_cos = cosf(angle);
 
-	INDEX_MATRIX(res, 0, 0) = _cos;
-	INDEX_MATRIX(res, 0, 1) = -_sin;
-	INDEX_MATRIX(res, 1, 0) = _sin;
-	INDEX_MATRIX(res, 1, 1) = _cos;
-	INDEX_MATRIX(res, 2, 2) = 1.0F;
-	INDEX_MATRIX(res, 3, 3) = 1.0F;
+	MAT4_AT(res, 0, 0) = _cos;
+	MAT4_AT(res, 0, 1) = -_sin;
+	MAT4_AT(res, 1, 0) = _sin;
+	MAT4_AT(res, 1, 1) = _cos;
+	MAT4_AT(res, 2, 2) = 1.0F;
+	MAT4_AT(res, 3, 3) = 1.0F;
 }
 
 typedef enum axis

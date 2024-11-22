@@ -78,6 +78,9 @@ extern inline bool is_block_coords_equal(block_coords_t a, block_coords_t b)
 void world_init(void);
 void world_destroy(void);
 
+/* fetch game tick count */
+int world_ticks(void);
+
 typedef enum ray_settings
 {
 	RAY_SOLID	= 0x01,
@@ -146,6 +149,9 @@ extern array_list_t chunk_list;		/* struct chunk array_list */
 #define CHUNK_FX(mask)			(float)((mask) % CHUNK_WX)
 #define CHUNK_FY(mask)			(float)((mask) / CHUNK_FLOOR_BLOCK_COUNT)
 #define CHUNK_FZ(mask)			(float)(((mask) % CHUNK_FLOOR_BLOCK_COUNT) / CHUNK_WX)
+
+void world_render_init(void);
+void world_render_destroy(void);
 
 /* Initializes world's chunk manager */
 void world_chunk_init(void);

@@ -129,7 +129,7 @@ static LRESULT window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		{
 			glViewport(0, 0, LOWORD(lparam), HIWORD(lparam));
 			dims = (pointi_t){ LOWORD(lparam), HIWORD(lparam) };
-			camera_set_projection_properties(0.1F, 1000.0F, 90.0F);
+			camera_set_projection_properties(0.1F, 1000.0F, DEGREES_TO_RADIANS(90.0F), (float)dims.x / dims.y);
 		}
 		return 0;
 

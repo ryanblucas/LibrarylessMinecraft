@@ -13,33 +13,27 @@
 static array_list_t update_list;
 static int ticks;
 
-static vertex_buffer_t debug_chunk_border;
-static bool display_debug_chunk_border;
-
 entity_t player;
 
 void world_init(void)
 {
 	update_list = mc_list_create(sizeof(block_coords_t));
 	world_chunk_init();
-	entity_player_init(&player);
+	world_render_init();
 
-	array_list_t vertices = mc_list_create(sizeof(float));
-	for (int j = 0; j < CHUNK_WY; j += 16)
-	{
-		float to_add[72];
-		graphics_primitive_cube((vector3_t) { 0, (float)j, 0 }, (vector3_t) { 16, 16, 16 }, to_add);
-		mc_list_array_add(vertices, mc_list_count(vertices), to_add, sizeof * to_add, 72);
-	}
-	debug_chunk_border = graphics_buffer_create(mc_list_array(vertices), mc_list_count(vertices) / 3, VERTEX_POSITION);
-	mc_list_destroy(&vertices);
+	entity_player_init(&player);
 }
 
 void world_destroy(void)
 {
 	world_chunk_destroy();
+	world_render_destroy();
 	mc_list_destroy(&update_list);
-	graphics_buffer_delete(&debug_chunk_border);
+}
+
+int world_ticks(void)
+{
+	return ticks;
 }
 
 struct ray_state
@@ -244,6 +238,11 @@ static void world_liquid_remove(block_coords_t coords)
 
 static liquid_t* world_liquid_add(block_coords_t coords, vector3_t push, int strength)
 {
+	if (world_liquid_strength(coords) >= strength)
+	{
+		return world_liquid_get(coords);
+	}
+
 	world_liquid_remove(coords);
 	struct chunk* chunk = world_chunk_get(coords.x, coords.z);
 	if (!chunk || IS_SOLID(world_block_get(coords)))
@@ -349,10 +348,7 @@ static void world_liquid_try_tick(block_coords_t coords)
 		world_liquid_spread((block_coords_t) { coords.x, coords.y, coords.z + 1 });
 		return;
 	}
-	if (!world_liquid_get(down))
-	{
-		world_liquid_add(down, (vector3_t) { 0 }, WATER_STRENGTH);
-	}
+	world_liquid_add(down, (vector3_t) { 0 }, WATER_STRENGTH);
 }
 
 static void world_block_tick(void)
@@ -487,50 +483,5 @@ void world_update(float delta)
 		}
 	}
 
-	if (window_input_clicked(INPUT_TOGGLE_CHUNK_BORDERS))
-	{
-		display_debug_chunk_border = !display_debug_chunk_border;
-	}
-
 	ticks++;
-}
-
-void world_render(const shader_t solid, const shader_t liquid, float delta)
-{
-	graphics_shader_use(solid);
-	camera_activate();
-	for (int i = 0; i < mc_list_count(chunk_list); i++)
-	{
-		struct chunk* chunk = MC_LIST_CAST_GET(chunk_list, i, struct chunk);
-		world_chunk_clean_mesh(i);
-
-		matrix_t transform;
-		matrix_translation((vector3_t) { (float)chunk->x, 0.0F, (float)chunk->z }, transform);
-		graphics_shader_matrix("model", transform);
-		graphics_buffer_draw(chunk->opaque_buffer);
-	}
-
-	graphics_shader_use(liquid);
-	camera_activate();
-	for (int i = 0; i < mc_list_count(chunk_list); i++)
-	{
-		struct chunk* chunk = MC_LIST_CAST_GET(chunk_list, i, struct chunk);
-		matrix_t transform;
-		matrix_translation((vector3_t) { (float)chunk->x, 0.0F, (float)chunk->z }, transform);
-		graphics_shader_matrix("model", transform);
-		graphics_buffer_draw(chunk->liquid_buffer);
-	}
-
-	if (display_debug_chunk_border)
-	{
-		vector3_t player_pos = aabb_get_center(player.hitbox);
-		player_pos.x = ROUND_DOWN(round(player_pos.x), CHUNK_WX);
-		player_pos.y = 0.0F;
-		player_pos.z = ROUND_DOWN(round(player_pos.z), CHUNK_WZ);
-		graphics_debug_queue_buffer((debug_buffer_t)
-		{
-			.vertex = debug_chunk_border,
-			.position = player_pos
-		});
-	}
 }

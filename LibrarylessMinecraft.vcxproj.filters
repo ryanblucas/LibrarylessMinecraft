@@ -30,7 +30,7 @@
     <ClCompile Include="world.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="world_mesh.c">
+    <ClCompile Include="world_render.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="entity.c">
@@ -76,10 +76,12 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="assets\shaders\basic_vertex.glsl" />
-    <None Include="assets\shaders\basic_fragment.glsl" />
     <None Include="assets\shaders\line_fragment.glsl" />
     <None Include="assets\shaders\line_vertex.glsl" />
+    <None Include="assets\shaders\block_fragment.glsl" />
+    <None Include="assets\shaders\block_vertex.glsl" />
+    <None Include="assets\shaders\liquid_fragment.glsl" />
+    <None Include="assets\shaders\liquid_vertex.glsl" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\test.bmp">
