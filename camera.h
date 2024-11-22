@@ -44,5 +44,3 @@ void camera_view_projection(matrix_t out);
 
 /* Updates camera */
 void camera_update(vector3_t pos);
-/* Is aabb visible within camera's frustum? */
-bool camera_is_aabb_visible(aabb_t aabb);

@@ -333,55 +333,15 @@ void world_render_destroy(void)
 	graphics_buffer_delete(&debug_chunk_border);
 }
 
-/* Frustum culls active chunk list. Do not free the list returned. */
-static array_list_t world_render_cull(void)
-{
-	static array_list_t to_render;
-	if (!to_render)
-	{
-		to_render = mc_list_create(sizeof(struct chunk*));
-	}
-	mc_list_splice(to_render, 0, mc_list_count(to_render));
-
-	for (int i = 0; i < mc_list_count(chunk_list); i++)
-	{
-		struct chunk* curr = MC_LIST_CAST_GET(chunk_list, i, struct chunk);
-		/* find max height of chunk */
-		aabb_t chunk = { .min = { curr->x, 0, curr->z }, .max = { CHUNK_WX, CHUNK_WY, CHUNK_WZ } };
-		if (camera_is_aabb_visible(chunk))
-		{
-			mc_list_add(to_render, mc_list_count(to_render), &curr, sizeof curr);
-		}
-	}
-
-	static int last_tick = -1;
-	if (last_tick != world_ticks())
-	{
-		last_tick = world_ticks();
-		if (window_input_clicked(INPUT_TOGGLE_CHUNK_BORDERS))
-		{
-			display_debug_chunk_border = !display_debug_chunk_border;
-		}
-		if (last_tick % 10 == 0)
-		{
-			printf("Original: %i, culled: %i\n", mc_list_count(chunk_list), mc_list_count(to_render));
-		}
-	}
-
-	return to_render;
-}
-
 void world_render(const shader_t solid, const shader_t liquid, float delta)
 {
-	array_list_t to_render = world_render_cull();
-
 	graphics_shader_use(solid);
 	matrix_t cam;
 	camera_view_projection(cam);
 	graphics_shader_matrix("camera", cam);
-	for (int i = 0; i < mc_list_count(to_render); i++)
+	for (int i = 0; i < mc_list_count(chunk_list); i++)
 	{
-		struct chunk* chunk = *MC_LIST_CAST_GET(to_render, i, struct chunk*);
+		struct chunk* chunk = MC_LIST_CAST_GET(chunk_list, i, struct chunk);
 		world_chunk_clean_mesh(i);
 
 		matrix_t transform;
@@ -392,9 +352,9 @@ void world_render(const shader_t solid, const shader_t liquid, float delta)
 
 	graphics_shader_use(liquid);
 	graphics_shader_matrix("camera", cam);
-	for (int i = 0; i < mc_list_count(to_render); i++)
+	for (int i = 0; i < mc_list_count(chunk_list); i++)
 	{
-		struct chunk* chunk = *MC_LIST_CAST_GET(to_render, i, struct chunk*);
+		struct chunk* chunk = MC_LIST_CAST_GET(chunk_list, i, struct chunk);
 		matrix_t transform;
 		matrix_translation((vector3_t) { (float)chunk->x, 0.0F, (float)chunk->z }, transform);
 		graphics_shader_matrix("model", transform);
