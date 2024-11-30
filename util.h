@@ -24,7 +24,7 @@ size_t mc_list_element_size(const array_list_t list);
 /* Get raw array of elements */
 void* mc_list_array(array_list_t list);
 
-/* Creates an array list with name and size of each element. */
+/* Creates an array list with size of each element. */
 array_list_t mc_list_create(size_t element_size);
 /* Destroys list pointed at by parameter, setting parameter to NULL afterwards */
 void mc_list_destroy(array_list_t* list);
@@ -36,6 +36,44 @@ int mc_list_remove(array_list_t list, int index, void* out, size_t element_size)
 void mc_list_splice(array_list_t list, int start, int count);
 /* Appends array to list at index. element_size is the size of each of arr's elements in bytes, arr_size is the count of those elements--NOT in bytes. */
 void mc_list_array_add(array_list_t list, int index, void* arr, size_t element_size, int arr_size);
+
+typedef uintmax_t hash_t;
+
+/* Hashes buffer. If buf_len < 0, buf is assumed to be NUL-terminated. */
+extern inline hash_t mc_hash(const void* _buf, int buf_len)
+{
+	/* The hashmap implementation hinges on the fact this doesn't return 0. What if it does, and does it? */
+	const uint8_t* buf = (uint8_t*)_buf;
+	hash_t result = 5381;
+	for (int i = 0; i < buf_len || (buf_len < 0 && buf[i]); i++)
+	{
+		result = ((result << 5) + result) ^ buf[i];
+	}
+	return result;
+}
+
+/* Implementation of a hashmap: a list of keys mapping to values. */
+typedef struct map* map_t;
+
+/* Return true on continue iterating, false on break */
+typedef bool (*map_iterate_func_t)(const map_t map, hash_t key, void* value, void* user);
+void mc_map_iterate(const map_t map, map_iterate_func_t callback, void* user);
+
+/* Creates a map with size of each element. */
+map_t mc_map_create(size_t element_size);
+/* Destroys map pointed at by parameter, setting parameter to NULL afterwards */
+void mc_map_destroy(map_t* map);
+/* Adds key-value-pair to map */
+void mc_map_add(map_t map, hash_t key, const void* pelement, size_t element_size);
+/* If present, removes an element from the hashmap and writes to out if not NULL */
+void mc_map_remove(map_t map, hash_t key, void* out, size_t element_size);
+/* Gets element at key. If the element does not exist, returns NULL. Otherwise, returns pointer
+	to element in internal array. If out is not NULL, it writes to it. */
+void* mc_map_get(const map_t map, hash_t key, void* out, size_t element_size);
+/* Get amount of pairs in map */
+int mc_map_count(const map_t map);
+/* Get size of each element in map */
+size_t mc_map_element_size(const map_t map);
 
 #define ROUND_DOWN(c, m) (((c) < 0 ? -((int)(-(c) - 1 + (m)) / (int)(m)) : (int)(c) / (int)(m)) * (m))
 
@@ -105,20 +143,6 @@ extern inline uint8_t* mc_read_file_binary(const char* path, long* size)
 		src = NULL;
 	}
 	return src;
-}
-
-typedef uintmax_t hash_t;
-
-/* Hashes buffer. If buf_len < 0, buf is assumed to be NUL-terminated. */
-extern inline hash_t mc_hash(const void* _buf, int buf_len)
-{
-	const uint8_t* buf = (uint8_t*)_buf;
-	hash_t result = 5381;
-	for (int i = 0; i < buf_len || (buf_len < 0 && buf[i]); i++)
-	{
-		result = ((result << 5) + result) ^ buf[i];
-	}
-	return result;
 }
 
 /* MATH SECTION */

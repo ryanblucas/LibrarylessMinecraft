@@ -265,20 +265,25 @@ static void world_mesh_flowing_water(int mask, int strength, enum quad_normal no
 	}
 }
 
+static bool world_liquid_callback(const map_t map, hash_t key, void* value, void* user)
+{
+	liquid_t* liquid = (liquid_t*)value;
+	struct chunk* chunk = (struct chunk*)user;
+
+	int mask = CHUNK_INDEX_OF(liquid->position.x - chunk->x, liquid->position.y, liquid->position.z - chunk->z);
+	int strength = liquid->came_from_above ? 8 : liquid->strength;
+	world_mesh_flowing_water(mask, strength, LEFT);
+	world_mesh_flowing_water(mask, strength, RIGHT);
+	world_mesh_flowing_water(mask, strength, BACKWARD);
+	world_mesh_flowing_water(mask, strength, FORWARD);
+	world_mesh_flowing_water(mask, strength, UP);
+	world_mesh_flowing_water(mask, strength, DOWN);
+	return true;
+}
+
 static void world_chunk_clean_liquid(struct chunk* chunk)
 {
-	for (int i = 0; i < mc_list_count(chunk->flowing_liquid); i++)
-	{
-		liquid_t* liquid = MC_LIST_CAST_GET(chunk->flowing_liquid, i, liquid_t);
-		int mask = CHUNK_INDEX_OF(liquid->position.x - chunk->x, liquid->position.y, liquid->position.z - chunk->z);
-		int strength = liquid->came_from_above ? 8 : liquid->strength;
-		world_mesh_flowing_water(mask, strength, LEFT);
-		world_mesh_flowing_water(mask, strength, RIGHT);
-		world_mesh_flowing_water(mask, strength, BACKWARD);
-		world_mesh_flowing_water(mask, strength, FORWARD);
-		world_mesh_flowing_water(mask, strength, UP);
-		world_mesh_flowing_water(mask, strength, DOWN);
-	}
+	mc_map_iterate(chunk->flowing_liquid, world_liquid_callback, chunk);
 
 	graphics_buffer_modify(chunk->liquid_buffer, vertex_list->array, vertex_list->count);
 	vertex_list->count = 0;

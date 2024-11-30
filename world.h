@@ -136,7 +136,7 @@ struct chunk
 	int dirty_mask;
 	vertex_buffer_t opaque_buffer, liquid_buffer;
 	block_type_t arr[CHUNK_BLOCK_COUNT];
-	array_list_t flowing_liquid; /* struct liquid array_list */
+	map_t flowing_liquid; /* struct liquid map */
 };
 
 extern array_list_t chunk_list;		/* struct chunk array_list */
