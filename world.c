@@ -218,6 +218,7 @@ static void world_liquid_remove(block_coords_t coords)
 		return;
 	}
 	mc_map_remove(chunk->flowing_liquid, mc_hash(&coords, sizeof coords), NULL, 0);
+	chunk->dirty_mask |= LIQUID_BIT;
 }
 
 static liquid_t* world_liquid_add(block_coords_t coords, vector3_t push, int strength)

@@ -1,13 +1,17 @@
 In order:
-	Fix liquid updating
-	Separate graphics_debug from graphics
-	Add color to debug primitives
-	Further speed up meshing chunks and generating them
-	Make each face have different textures
-
-	Frustum culling
-	Health system
-	User interface
-	Inventory
-	Day-night cycle (with that, a lighting shader)
-	Crafting
+	-Necessary-
+		Fix liquid updating
+		Caves
+		Trees and random ores
+		Health system
+		User interface
+		Inventory
+		Day-night cycle (with that, a lighting shader)
+		Crafting
+		
+	-Optional-
+		Separate graphics_debug from graphics
+		Add color to debug primitives
+		Further speed up meshing chunks and generating them
+		Make each face have different textures
+		Frustum culling

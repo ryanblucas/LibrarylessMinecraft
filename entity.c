@@ -19,9 +19,12 @@ void entity_player_init(entity_t* ent)
 {
 	/* Minecraft's player dimensions */
 	ent->hitbox = (aabb_t){ .max = { 0.6F, 1.8F, 0.6F } };
-	ent->hitbox = aabb_set_center(ent->hitbox, (vector3_t) { 8, 130, 8 });
 	ent->reserved = mc_malloc(sizeof(struct player_internal));
 	memset(ent->reserved, 0, sizeof(struct player_internal));
+
+	block_coords_t spawn;
+	for (spawn = (block_coords_t) { 8, CHUNK_WY, 8 }; !IS_SOLID(world_block_get(spawn)); spawn.y--);
+	ent->hitbox = aabb_set_center(ent->hitbox, block_coords_to_vector(spawn));
 }
 
 static void entity_player_move_standard(entity_t* ent, float delta)
