@@ -127,8 +127,13 @@ static inline const block_type_t* world_chunk_get_array_or_default(int x, int z,
 	return def;
 }
 
-static void world_chunk_clean_opaque(struct chunk* chunk)
+static void world_chunk_try_clean(struct chunk* chunk)
 {
+	if (chunk->dirty_mask == 0)
+	{
+		return;
+	}
+
 	static block_type_t def[CHUNK_BLOCK_COUNT];
 	const block_type_t* left = world_chunk_get_array_or_default(chunk->x - CHUNK_WX, chunk->z, def),
 		*right = world_chunk_get_array_or_default(chunk->x + CHUNK_WX, chunk->z, def),
@@ -138,6 +143,8 @@ static void world_chunk_clean_opaque(struct chunk* chunk)
 
 	for (int mask = 0; mask < CHUNK_BLOCK_COUNT; mask++)
 	{
+#undef IS_SOLID
+#define IS_SOLID(v) ((v) != BLOCK_AIR)
 		int x = CHUNK_X(mask), y = CHUNK_Y(mask), z = CHUNK_Z(mask);
 		block_type_t curr = chunk->arr[mask];
 		if (!IS_SOLID(curr))
@@ -176,120 +183,6 @@ static void world_chunk_clean_opaque(struct chunk* chunk)
 	chunk->dirty_mask ^= OPAQUE_BIT;
 }
 
-static void world_mesh_flowing_water(int mask, int strength, enum quad_normal normal)
-{
-	vertex_t a, b, c, d;
-	float s = 1 - ((7 - strength) + 1) / 8.0F;
-	switch (normal)
-	{
-	case LEFT:
-		c = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask),		CHUNK_FZ(mask) };
-		b = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask),		CHUNK_FZ(mask) + 1 };
-		a = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask) + s,	CHUNK_FZ(mask) + 1 };
-		d = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask) + s,	CHUNK_FZ(mask) };
-		break;
-	case RIGHT:
-		a = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask),		CHUNK_FZ(mask) };
-		b = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask),		CHUNK_FZ(mask) + 1 };
-		c = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask) + s,	CHUNK_FZ(mask) + 1 };
-		d = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask) + s,	CHUNK_FZ(mask) };
-		break;
-	case UP:
-		c = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask),		CHUNK_FZ(mask) };
-		b = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask),		CHUNK_FZ(mask) };
-		a = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask),		CHUNK_FZ(mask) + 1 };
-		d = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask),		CHUNK_FZ(mask) + 1 };
-		break;
-	case DOWN:
-		a = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask) + s,	CHUNK_FZ(mask) };
-		b = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask) + s,	CHUNK_FZ(mask) };
-		c = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask) + s,	CHUNK_FZ(mask) + 1 };
-		d = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask) + s,	CHUNK_FZ(mask) + 1 };
-		break;
-	case FORWARD:
-		c = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask),		CHUNK_FZ(mask) + 1 };
-		b = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask),		CHUNK_FZ(mask) + 1 };
-		a = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask) + s,	CHUNK_FZ(mask) + 1 };
-		d = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask) + s,	CHUNK_FZ(mask) + 1 };
-		break;
-	case BACKWARD:
-		a = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask),		CHUNK_FZ(mask) };
-		b = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask),		CHUNK_FZ(mask) };
-		c = (vertex_t){ CHUNK_FX(mask) + 1,	CHUNK_FY(mask) + s,	CHUNK_FZ(mask) };
-		d = (vertex_t){ CHUNK_FX(mask),		CHUNK_FY(mask) + s,	CHUNK_FZ(mask) };
-		break;
-	default:
-		return;
-	}
-
-	if (normal & FLIPPED_BIT)
-	{
-		/* -1 for air */
-		c.tx = (float)(BLOCK_WATER - 1) / (BLOCK_COUNT - 1);
-		c.ty = 0.0F;
-		a.tx = c.tx + 1.0F / (BLOCK_COUNT - 1);
-		a.ty = 1.0F;
-		b.tx = a.tx;
-		b.ty = 0.0F;
-		d.tx = c.tx;
-		d.ty = 1.0F;
-	}
-	else
-	{
-		/* -1 for air */
-		a.tx = (float)(BLOCK_WATER) / (BLOCK_COUNT - 1);
-		a.ty = 0.0F;
-		c.tx = a.tx - 1.0F / (BLOCK_COUNT - 1);
-		c.ty = 1.0F;
-		b.tx = c.tx;
-		b.ty = 0.0F;
-		d.tx = a.tx;
-		d.ty = 1.0F;
-	}
-
-	vertex_list->array[vertex_list->count++] = a;
-	vertex_list->array[vertex_list->count++] = b;
-	vertex_list->array[vertex_list->count++] = c;
-	vertex_list->array[vertex_list->count++] = c;
-	vertex_list->array[vertex_list->count++] = d;
-	vertex_list->array[vertex_list->count++] = a;
-
-	if (vertex_list->count + 6 >= vertex_list->reserved)
-	{
-		size_t old_size = sizeof * vertex_list + sizeof * vertex_list->array * vertex_list->reserved;
-		struct vertex_list* prev = vertex_list;
-		vertex_list = mc_malloc(old_size + sizeof * vertex_list->array * vertex_list->reserved);
-		memcpy(vertex_list, prev, old_size);
-		vertex_list->reserved *= 2;
-		free(prev);
-	}
-}
-
-static bool world_liquid_callback(const map_t map, hash_t key, void* value, void* user)
-{
-	liquid_t* liquid = (liquid_t*)value;
-	struct chunk* chunk = (struct chunk*)user;
-
-	int mask = CHUNK_INDEX_OF(liquid->position.x - chunk->x, liquid->position.y, liquid->position.z - chunk->z);
-	int strength = liquid->came_from_above ? 8 : liquid->strength;
-	world_mesh_flowing_water(mask, strength, LEFT);
-	world_mesh_flowing_water(mask, strength, RIGHT);
-	world_mesh_flowing_water(mask, strength, BACKWARD);
-	world_mesh_flowing_water(mask, strength, FORWARD);
-	world_mesh_flowing_water(mask, strength, UP);
-	world_mesh_flowing_water(mask, strength, DOWN);
-	return true;
-}
-
-static void world_chunk_clean_liquid(struct chunk* chunk)
-{
-	mc_map_iterate(chunk->flowing_liquid, world_liquid_callback, chunk);
-
-	graphics_buffer_modify(chunk->liquid_buffer, vertex_list->array, vertex_list->count);
-	vertex_list->count = 0;
-	chunk->dirty_mask ^= LIQUID_BIT;
-}
-
 void world_chunk_clean_mesh(int index)
 {
 	/*	This is NOT a greedy mesher. That's because texture wrapping is impossible with texture atlases, but using
@@ -310,14 +203,7 @@ void world_chunk_clean_mesh(int index)
 	}
 
 	struct chunk* chunk = MC_LIST_CAST_GET(chunk_list, index, struct chunk);
-	if (chunk->dirty_mask & OPAQUE_BIT)
-	{
-		world_chunk_clean_opaque(chunk);
-	}
-	if (chunk->dirty_mask & LIQUID_BIT)
-	{
-		world_chunk_clean_liquid(chunk);
-	}
+	world_chunk_try_clean(chunk);
 }
 
 void world_render_init(void)

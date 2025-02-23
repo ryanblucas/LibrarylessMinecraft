@@ -50,7 +50,7 @@ void world_raycast_loop(block_coords_t i, void* user)
 	block_type_t type = world_block_get(i);
 	if (!(state->settings & RAY_SOLID && IS_SOLID(type))
 		&& !(state->settings & RAY_AIR && type == BLOCK_AIR)
-		&& !(state->settings & RAY_LIQUID && world_liquid_get(i)))
+		&& !(state->settings & RAY_LIQUID && type == BLOCK_WATER))
 	{
 		return;
 	}
@@ -173,13 +173,6 @@ int world_region_aabb(block_coords_t _min, block_coords_t _max, aabb_t* arr, int
 	return curr_i;
 }
 
-aabb_t world_liquid_to_aabb(liquid_t liquid)
-{
-	float s = 1 - ((7 - liquid.strength) + 1) / 8.0F;
-	vector3_t min = block_coords_to_vector(liquid.position);
-	return (aabb_t) { min, vector3_add(min, (vector3_t) { 1.0F, s, 1.0F }) };
-}
-
 static int update_list_start = 0;
 
 void world_block_update(block_coords_t coords)
@@ -191,7 +184,7 @@ void world_block_update(block_coords_t coords)
 
 	for (int i = update_list_start; i < mc_list_count(update_list); i++)
 	{
-		if (is_block_coords_equal(*MC_LIST_CAST_GET(update_list, i, block_coords_t), coords))
+		if (memcmp(MC_LIST_CAST_GET(update_list, i, block_coords_t), &coords, sizeof coords) == 0)
 		{
 			return;
 		}
@@ -200,150 +193,33 @@ void world_block_update(block_coords_t coords)
 	mc_list_add(update_list, mc_list_count(update_list), &coords, sizeof coords);
 }
 
-static liquid_t* world_liquid_get(block_coords_t coords)
+static inline void world_block_try_set(block_coords_t coords, block_type_t type)
 {
-	struct chunk* chunk = world_chunk_get(coords.x, coords.z);
-	if (!chunk)
+	if (world_block_get(coords) == BLOCK_AIR)
 	{
-		return NULL;
+		world_block_set(coords, type);
 	}
-	return mc_map_get(chunk->flowing_liquid, mc_hash(&coords, sizeof coords), NULL, 0);
-}
-
-static void world_liquid_remove(block_coords_t coords)
-{
-	struct chunk* chunk = world_chunk_get(coords.x, coords.z);
-	if (!chunk)
-	{
-		return;
-	}
-	mc_map_remove(chunk->flowing_liquid, mc_hash(&coords, sizeof coords), NULL, 0);
-	chunk->dirty_mask |= LIQUID_BIT;
-}
-
-static liquid_t* world_liquid_add(block_coords_t coords, vector3_t push, int strength)
-{
-	if (world_liquid_strength(coords) >= strength)
-	{
-		return world_liquid_get(coords);
-	}
-
-	world_liquid_remove(coords);
-	struct chunk* chunk = world_chunk_get(coords.x, coords.z);
-	if (!chunk || IS_SOLID(world_block_get(coords)))
-	{
-		return NULL;
-	}
-	liquid_t to_add = { .position = coords, .push = push, .strength = strength, .tick_count = ticks };
-	to_add.came_from_above = !!world_liquid_get((block_coords_t) { coords.x, coords.y + 1, coords.z });
-
-	hash_t key = mc_hash(&coords, sizeof coords);
-	mc_map_add(chunk->flowing_liquid, key, &to_add, sizeof to_add);
-	chunk->dirty_mask |= LIQUID_BIT;
-	world_block_update(coords);
-	return mc_map_get(chunk->flowing_liquid, key, NULL, 0);
-}
-
-static inline int world_liquid_strength(block_coords_t coords)
-{
-	liquid_t* liquid = world_liquid_get(coords);
-	if (!liquid)
-	{
-		return 0;
-	}
-	return liquid->strength;
-}
-
-static void world_liquid_spread(block_coords_t coords)
-{
-	int l_s = world_liquid_strength((block_coords_t) { coords.x - 1, coords.y, coords.z }),
-		r_s = world_liquid_strength((block_coords_t) { coords.x + 1, coords.y, coords.z }),
-		f_s = world_liquid_strength((block_coords_t) { coords.x, coords.y, coords.z - 1 }),
-		b_s = world_liquid_strength((block_coords_t) { coords.x, coords.y, coords.z + 1 });
-	int strength = max(l_s, max(r_s, max(f_s, b_s))) - 1;
-
-	liquid_t* existing = world_liquid_get(coords);
-	if (existing && existing->strength == WATER_STRENGTH)
-	{
-		return;
-	}
-
-	if (strength <= 0)
-	{
-		world_liquid_remove(coords);
-		return;
-	}
-
-	vector3_t l_p = vector3_mul_scalar((vector3_t) { -1.0F, 0.0F, 0.0F }, 8.0F - (float)l_s),
-		r_p = vector3_mul_scalar((vector3_t) { 1.0F, 0.0F, 0.0F }, 8.0F - (float)r_s),
-		f_p = vector3_mul_scalar((vector3_t) { 0.0F, 0.0F, -1.0F }, 8.0F - (float)f_s),
-		b_p = vector3_mul_scalar((vector3_t) { 0.0F, 0.0F, 1.0F }, 8.0F - (float)b_s);
-	vector3_t push = vector3_normalize(vector3_add(vector3_add(l_p, r_p), vector3_add(f_p, b_p)));
-
-	/* TO DO: would be simpler if you just called world_liquid_add, since the effect (should) be the same, but a simple replacement doesn't work quite right. */
-
-	if (!existing)
-	{
-		world_liquid_add(coords, push, strength);
-		return;
-	}
-
-	existing->push = push;
-	if (existing->strength != strength)
-	{
-		existing->strength = strength;
-		existing->tick_count = ticks;
-
-		world_block_update(coords);
-		world_chunk_get(coords.x, coords.z)->dirty_mask |= LIQUID_BIT;
-	}
-}
-
-static void world_liquid_try_tick(block_coords_t coords)
-{
-	bool is_source = world_block_get(coords) == BLOCK_WATER;
-	liquid_t* pflow = world_liquid_get(coords);
-	if (!is_source && !pflow)
-	{
-		return;
-	}
-	else if (is_source && !pflow)
-	{
-		world_liquid_add(coords, (vector3_t) { 0 }, WATER_STRENGTH);
-		return;
-	}
-
-	block_coords_t down = (block_coords_t){ coords.x, coords.y - 1, coords.z };
-	if (IS_SOLID(world_block_get(coords)) || (pflow->came_from_above && !world_liquid_get((block_coords_t) { coords.x, coords.y + 1, coords.z })))
-	{
-		world_liquid_remove(coords);
-	}
-
-	if (ticks - pflow->tick_count < 5)
-	{
-		world_block_update(coords);
-		return;
-	}
-
-	world_liquid_spread(coords);
-	if (IS_SOLID(world_block_get(down)))
-	{
-		world_liquid_spread((block_coords_t) { coords.x - 1, coords.y, coords.z });
-		world_liquid_spread((block_coords_t) { coords.x + 1, coords.y, coords.z });
-		world_liquid_spread((block_coords_t) { coords.x, coords.y, coords.z - 1 });
-		world_liquid_spread((block_coords_t) { coords.x, coords.y, coords.z + 1 });
-		return;
-	}
-	world_liquid_add(down, (vector3_t) { 0 }, WATER_STRENGTH);
 }
 
 static void world_block_tick(void)
 {
+	if (ticks % 5 != 0) /* only water is updated RN */
+	{
+		return;
+	}
+
 	update_list_start = mc_list_count(update_list);
 	for (int i = update_list_start - 1; i >= 0; i--)
 	{
 		block_coords_t coords = *MC_LIST_CAST_GET(update_list, i, block_coords_t);
-		world_liquid_try_tick(coords);
+		if (world_block_get(coords) == BLOCK_WATER)
+		{
+			world_block_try_set((block_coords_t) { coords.x + 1, coords.y, coords.z }, BLOCK_WATER);
+			world_block_try_set((block_coords_t) { coords.x - 1, coords.y, coords.z }, BLOCK_WATER);
+			world_block_try_set((block_coords_t) { coords.x, coords.y, coords.z + 1 }, BLOCK_WATER);
+			world_block_try_set((block_coords_t) { coords.x, coords.y, coords.z - 1 }, BLOCK_WATER);
+			world_block_try_set((block_coords_t) { coords.x, coords.y - 1, coords.z }, BLOCK_WATER);
+		}
 	}
 	mc_list_splice(update_list, 0, update_list_start);
 	update_list_start = 0;
@@ -423,11 +299,6 @@ void world_block_debug(block_coords_t coords, FILE* stream)
 #undef DEFINE_BLOCK
 
 	vector3_t push = { 0 };
-	liquid_t* liquid = world_liquid_get(coords);
-	if (liquid)
-	{
-		push = liquid->push;
-	}
 
 	struct chunk* chunk = world_chunk_get(coords.x, coords.z);
 	int i;
@@ -439,20 +310,8 @@ void world_block_debug(block_coords_t coords, FILE* stream)
 		}
 	}
 
-	float angle = atan2f(push.z, push.x);
-	fprintf(stream, "(%i, %i, %i), chunk %i (%i, %i). Block name \"%s,\" block id: %i. Liquid strength: %i, push: (%f, %f, %f), angle: %f deg\n", 
-		coords.x, coords.y, coords.z, i, chunk->x, chunk->z, name, id, world_liquid_strength(coords), push.x, push.y, push.z, RADIANS_TO_DEGREES(angle));
-}
-
-static bool world_liquid_move_player(const map_t map, hash_t key, void* value, void* user)
-{
-	float delta = *(float*)user;
-	liquid_t* curr = (liquid_t*)value;
-	if (aabb_collides_aabb(world_liquid_to_aabb(*curr), player.hitbox))
-	{
-		entity_move(&player, vector3_mul_scalar(curr->push, delta));
-	}
-	return true;
+	fprintf(stream, "(%i, %i, %i), chunk %i (%i, %i). Block name \"%s,\" block id: %i", 
+		coords.x, coords.y, coords.z, i, chunk->x, chunk->z, name, id);
 }
 
 void world_update(float delta)
@@ -472,12 +331,6 @@ void world_update(float delta)
 
 	world_block_tick();
 	entity_player_update(&player, delta);
-
-	struct chunk* player_chunk = world_chunk_get((int)aabb_get_center(player.hitbox).x, (int)aabb_get_center(player.hitbox).z);
-	if (player_chunk && !entity_player_is_noclipping(&player))
-	{
-		mc_map_iterate(player_chunk->flowing_liquid, world_liquid_move_player, &delta);
-	}
 
 	ticks++;
 }

@@ -1,6 +1,5 @@
 In order:
 	-Necessary-
-		Fix liquid updating
 		Caves
 		Trees and random ores
 		Health system

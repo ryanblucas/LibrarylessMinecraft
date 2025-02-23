@@ -46,7 +46,6 @@ struct chunk* world_chunk_create(int x_o, int z_o)
 
 	next->x = x_o;
 	next->z = z_o;
-	next->flowing_liquid = mc_map_create(sizeof(liquid_t));
 
 	memset(next->arr, 0, sizeof next->arr);
 
