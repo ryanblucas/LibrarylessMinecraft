@@ -52,6 +52,33 @@ extern inline hash_t mc_hash(const void* _buf, int buf_len)
 	return result;
 }
 
+/* TO DO: hash-based data structures have many collisions after a certain size */
+
+/* Implementation of an hashset: a list of values hashed into a list of buckets for fast lookup. */
+typedef struct map* hash_set_t;
+
+/* Return true on continue iterating, false on break */
+typedef bool (*set_iterate_func_t)(const hash_set_t set, void* value, void* user);
+void mc_set_iterate(const hash_set_t map, set_iterate_func_t callback, void* user);
+
+/* Get amount of elements in list */
+int mc_set_count(const hash_set_t list);
+/* Get size of each element in list */
+size_t mc_set_element_size(const hash_set_t list);
+
+/* Creates an array list with size of each element. */
+hash_set_t mc_set_create(size_t element_size);
+/* Destroys list pointed at by parameter, setting parameter to NULL afterwards */
+void mc_set_destroy(hash_set_t* list);
+/* Adds an element to the hashset. */
+bool mc_set_add(hash_set_t list, const void* pelement, size_t element_size);
+/* Removes an element from the hashset */
+void mc_set_remove(hash_set_t list, const void* pelement, size_t element_size);
+/* Returns whether an element exists in the hashset */
+bool mc_set_has(hash_set_t list, const void* pelement, size_t element_size);
+/* Clears set */
+void mc_set_clear(hash_set_t list);
+
 /* Implementation of a hashmap: a list of keys mapping to values. */
 typedef struct map* map_t;
 
@@ -59,21 +86,24 @@ typedef struct map* map_t;
 typedef bool (*map_iterate_func_t)(const map_t map, hash_t key, void* value, void* user);
 void mc_map_iterate(const map_t map, map_iterate_func_t callback, void* user);
 
+/* Get amount of pairs in map */
+int mc_map_count(const map_t map);
+/* Get size of each element in map */
+size_t mc_map_element_size(const map_t map);
+
 /* Creates a map with size of each element. */
 map_t mc_map_create(size_t element_size);
 /* Destroys map pointed at by parameter, setting parameter to NULL afterwards */
 void mc_map_destroy(map_t* map);
 /* Adds key-value-pair to map */
-void mc_map_add(map_t map, hash_t key, const void* pelement, size_t element_size);
+bool mc_map_add(map_t map, hash_t key, const void* pelement, size_t element_size);
 /* If present, removes an element from the hashmap and writes to out if not NULL */
 void mc_map_remove(map_t map, hash_t key, void* out, size_t element_size);
 /* Gets element at key. If the element does not exist, returns NULL. Otherwise, returns pointer
 	to element in internal array. If out is not NULL, it writes to it. */
 void* mc_map_get(const map_t map, hash_t key, void* out, size_t element_size);
-/* Get amount of pairs in map */
-int mc_map_count(const map_t map);
-/* Get size of each element in map */
-size_t mc_map_element_size(const map_t map);
+/* Clears map */
+void mc_map_clear(map_t map);
 
 #define ROUND_DOWN(c, m) (((c) < 0 ? -((int)(-(c) - 1 + (m)) / (int)(m)) : (int)(c) / (int)(m)) * (m))
 

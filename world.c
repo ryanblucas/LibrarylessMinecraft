@@ -10,14 +10,15 @@
 #include "graphics.h"
 #include "window.h"
 
-static array_list_t update_list;
+static hash_set_t update_list, old_update_list;
 static int ticks;
 
 entity_t player;
 
 void world_init(void)
 {
-	update_list = mc_list_create(sizeof(block_coords_t));
+	update_list = mc_set_create(sizeof(block_coords_t));
+	old_update_list = mc_set_create(sizeof(block_coords_t));
 	world_chunk_init();
 	world_render_init();
 
@@ -28,7 +29,8 @@ void world_destroy(void)
 {
 	world_chunk_destroy();
 	world_render_destroy();
-	mc_list_destroy(&update_list);
+	mc_set_destroy(&update_list);
+	mc_set_destroy(&old_update_list);
 }
 
 int world_ticks(void)
@@ -173,8 +175,6 @@ int world_region_aabb(block_coords_t _min, block_coords_t _max, aabb_t* arr, int
 	return curr_i;
 }
 
-static int update_list_start = 0;
-
 void world_block_update(block_coords_t coords)
 {
 	if (IS_INVALID_BLOCK_COORDS(coords) || !world_chunk_get(coords.x, coords.z))
@@ -182,15 +182,7 @@ void world_block_update(block_coords_t coords)
 		return;
 	}
 
-	for (int i = update_list_start; i < mc_list_count(update_list); i++)
-	{
-		if (memcmp(MC_LIST_CAST_GET(update_list, i, block_coords_t), &coords, sizeof coords) == 0)
-		{
-			return;
-		}
-	}
-
-	mc_list_add(update_list, mc_list_count(update_list), &coords, sizeof coords);
+	mc_set_add(update_list, &coords, sizeof coords);
 }
 
 static inline void world_block_try_set(block_coords_t coords, block_type_t type)
@@ -201,6 +193,20 @@ static inline void world_block_try_set(block_coords_t coords, block_type_t type)
 	}
 }
 
+static bool world_block_tick_callback(const hash_set_t set, void* value, void* user)
+{
+	block_coords_t coords = *(block_coords_t*)value;
+	if (world_block_get(coords) == BLOCK_WATER)
+	{
+		world_block_try_set((block_coords_t) { coords.x + 1, coords.y, coords.z }, BLOCK_WATER);
+		world_block_try_set((block_coords_t) { coords.x - 1, coords.y, coords.z }, BLOCK_WATER);
+		world_block_try_set((block_coords_t) { coords.x, coords.y, coords.z + 1 }, BLOCK_WATER);
+		world_block_try_set((block_coords_t) { coords.x, coords.y, coords.z - 1 }, BLOCK_WATER);
+		world_block_try_set((block_coords_t) { coords.x, coords.y - 1, coords.z }, BLOCK_WATER);
+	}
+	return true;
+}
+
 static void world_block_tick(void)
 {
 	if (ticks % 5 != 0) /* only water is updated RN */
@@ -208,21 +214,11 @@ static void world_block_tick(void)
 		return;
 	}
 
-	update_list_start = mc_list_count(update_list);
-	for (int i = update_list_start - 1; i >= 0; i--)
-	{
-		block_coords_t coords = *MC_LIST_CAST_GET(update_list, i, block_coords_t);
-		if (world_block_get(coords) == BLOCK_WATER)
-		{
-			world_block_try_set((block_coords_t) { coords.x + 1, coords.y, coords.z }, BLOCK_WATER);
-			world_block_try_set((block_coords_t) { coords.x - 1, coords.y, coords.z }, BLOCK_WATER);
-			world_block_try_set((block_coords_t) { coords.x, coords.y, coords.z + 1 }, BLOCK_WATER);
-			world_block_try_set((block_coords_t) { coords.x, coords.y, coords.z - 1 }, BLOCK_WATER);
-			world_block_try_set((block_coords_t) { coords.x, coords.y - 1, coords.z }, BLOCK_WATER);
-		}
-	}
-	mc_list_splice(update_list, 0, update_list_start);
-	update_list_start = 0;
+	hash_set_t temp = old_update_list;
+	old_update_list = update_list;
+	update_list = temp;
+	mc_set_iterate(old_update_list, world_block_tick_callback, NULL);
+	mc_set_clear(old_update_list);
 }
 
 block_type_t world_block_get(block_coords_t coords)

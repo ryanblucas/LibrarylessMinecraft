@@ -156,12 +156,32 @@ void mc_map_iterate(const map_t map, map_iterate_func_t callback, void* user)
 	}
 }
 
+int mc_map_count(const map_t map)
+{
+	return map->count;
+}
+
+size_t mc_map_element_size(const map_t map)
+{
+	return map->element_size;
+}
+
 static inline struct map_pair* mc_map_pair(const map_t map, hash_t key)
 {
+	static double cnt = 0, amnt = 0, avg = 0;
+
 	for (int i = key % map->reserved; i < map->reserved; i++)
 	{
 		if (MC_MAP_INDEX(map, i).key == key)
 		{
+			cnt += i - key % map->reserved;
+			amnt++;
+			avg = cnt / amnt;
+			if (amnt > 1000)
+			{
+				amnt = 0;
+				cnt = 0;
+			}
 			return &MC_MAP_INDEX(map, i);
 		}
 	}
@@ -215,10 +235,11 @@ static void mc_map_realloc(map_t map)
 	*map = copy;
 }
 
-void mc_map_add(map_t map, hash_t key, const void* pelement, size_t element_size)
+bool mc_map_add(map_t map, hash_t key, const void* pelement, size_t element_size)
 {
 	assert(element_size == map->element_size);
 	struct map_pair* pair = mc_map_pair(map, key);
+	bool res = !!pair;
 	if (!pair)
 	{
 		int i;
@@ -227,7 +248,7 @@ void mc_map_add(map_t map, hash_t key, const void* pelement, size_t element_size
 		{
 			mc_map_realloc(map);
 			mc_map_add(map, key, pelement, element_size);
-			return;
+			return false;
 		}
 		pair = &MC_MAP_INDEX(map, i);
 	}
@@ -235,6 +256,7 @@ void mc_map_add(map_t map, hash_t key, const void* pelement, size_t element_size
 	pair->key = key;
 	memcpy(pair->value, pelement, element_size);
 	map->count++;
+	return res;
 }
 
 void mc_map_remove(map_t map, hash_t key, void* out, size_t element_size)
@@ -268,12 +290,65 @@ void* mc_map_get(const map_t map, hash_t key, void* out, size_t element_size)
 	return pair->value;
 }
 
-int mc_map_count(const map_t map)
+void mc_map_clear(map_t map)
 {
-	return map->count;
+	map->count = 0;
+	memset(map->data, 0, map->element_size * map->reserved);
 }
 
-size_t mc_map_element_size(const map_t map)
+void mc_set_iterate(const hash_set_t set, set_iterate_func_t callback, void* user)
 {
-	return map->element_size;
+	for (int i = 0; i < set->reserved; i++)
+	{
+		if (MC_MAP_INDEX(set, i).key != 0)
+		{
+			if (!callback(set, MC_MAP_INDEX(set, i).value, user))
+			{
+				break;
+			}
+		}
+	}
+}
+
+int mc_set_count(const hash_set_t list)
+{
+	return list->count;
+}
+
+size_t mc_set_element_size(const hash_set_t list)
+{
+	return list->element_size;
+}
+
+hash_set_t mc_set_create(size_t element_size)
+{
+	return mc_map_create(element_size);
+}
+
+void mc_set_destroy(hash_set_t* list)
+{
+	mc_map_destroy(list);
+}
+
+bool mc_set_add(hash_set_t list, const void* pelement, size_t element_size)
+{
+	assert(element_size == list->element_size);
+	return mc_map_add(list, mc_hash(pelement, element_size), pelement, element_size);
+}
+
+void mc_set_remove(hash_set_t list, const void* pelement, size_t element_size)
+{
+	assert(element_size == list->element_size);
+	mc_map_remove(list, mc_hash(pelement, element_size), NULL, element_size);
+}
+
+bool mc_set_has(hash_set_t list, const void* pelement, size_t element_size)
+{
+	assert(element_size == list->element_size);
+	return !!mc_map_get(list, mc_hash(pelement, element_size), NULL, element_size);
+}
+
+void mc_set_clear(hash_set_t list)
+{
+	mc_map_clear(list);
 }
