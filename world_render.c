@@ -123,7 +123,7 @@ static inline const block_type_t* world_chunk_get_array_or_default(int x, int z,
 
 static void world_chunk_clean(struct chunk* chunk)
 {
-	static block_type_t def[CHUNK_BLOCK_COUNT];
+	static const block_type_t def[CHUNK_BLOCK_COUNT];
 	const block_type_t* left = world_chunk_get_array_or_default(chunk->x - CHUNK_WX, chunk->z, def),
 		*right = world_chunk_get_array_or_default(chunk->x + CHUNK_WX, chunk->z, def),
 		*backward = world_chunk_get_array_or_default(chunk->x, chunk->z - CHUNK_WZ, def),
@@ -139,14 +139,6 @@ static void world_chunk_clean(struct chunk* chunk)
 			continue;
 		}
 		curr--;
-		if ((x == 0 && !IS_SOLID(CHUNK_AT(left, CHUNK_WX - 1, y, z))) || !IS_SOLID(CHUNK_AT(arr, x - 1, y, z)))
-		{
-			world_mesh_quad(mask, curr, LEFT);
-		}
-		if ((x == CHUNK_WX - 1 && !IS_SOLID(CHUNK_AT(right, 0, y, z))) || !IS_SOLID(CHUNK_AT(arr, x + 1, y, z)))
-		{
-			world_mesh_quad(mask, curr, RIGHT);
-		}
 		if (y == 0 || !IS_SOLID(CHUNK_AT(arr, x, y - 1, z)))
 		{
 			world_mesh_quad(mask, curr, UP);
@@ -155,11 +147,48 @@ static void world_chunk_clean(struct chunk* chunk)
 		{
 			world_mesh_quad(mask, curr, DOWN);
 		}
-		if ((z == 0 && !IS_SOLID(CHUNK_AT(backward, x, y, CHUNK_WZ - 1))) || !IS_SOLID(CHUNK_AT(arr, x, y, z - 1)))
+
+		if (x == 0)
+		{
+			if (!IS_SOLID(CHUNK_AT(left, CHUNK_WX - 1, y, z)))
+			{
+				world_mesh_quad(mask, curr, LEFT);
+			}
+		}
+		else if (!IS_SOLID(CHUNK_AT(arr, x - 1, y, z)))
+		{
+			world_mesh_quad(mask, curr, LEFT);
+		}
+		if (x == CHUNK_WX - 1)
+		{
+			if (!IS_SOLID(CHUNK_AT(right, 0, y, z)))
+			{
+				world_mesh_quad(mask, curr, RIGHT);
+			}
+		}
+		else if (!IS_SOLID(CHUNK_AT(arr, x + 1, y, z)))
+		{
+			world_mesh_quad(mask, curr, RIGHT);
+		}
+		if (z == 0)
+		{
+			if (!IS_SOLID(CHUNK_AT(backward, x, y, CHUNK_WZ - 1)))
+			{
+				world_mesh_quad(mask, curr, BACKWARD);
+			}
+		}
+		else if (!IS_SOLID(CHUNK_AT(arr, x, y, z - 1)))
 		{
 			world_mesh_quad(mask, curr, BACKWARD);
 		}
-		if ((z == CHUNK_WZ - 1 && !IS_SOLID(CHUNK_AT(forward, x, y, 0))) || !IS_SOLID(CHUNK_AT(arr, x, y, z + 1)))
+		if (z == CHUNK_WZ - 1)
+		{
+			if (!IS_SOLID(CHUNK_AT(forward, x, y, 0)))
+			{
+				world_mesh_quad(mask, curr, FORWARD);
+			}
+		}
+		else if (!IS_SOLID(CHUNK_AT(arr, x, y, z + 1)))
 		{
 			world_mesh_quad(mask, curr, FORWARD);
 		}
@@ -172,7 +201,7 @@ static void world_chunk_clean(struct chunk* chunk)
 
 static void world_chunk_clean_liquid(struct chunk* chunk)
 {
-	static block_type_t def[CHUNK_BLOCK_COUNT];
+	static const block_type_t def[CHUNK_BLOCK_COUNT];
 	const block_type_t* left = world_chunk_get_array_or_default(chunk->x - CHUNK_WX, chunk->z, def),
 		* right = world_chunk_get_array_or_default(chunk->x + CHUNK_WX, chunk->z, def),
 		* backward = world_chunk_get_array_or_default(chunk->x, chunk->z - CHUNK_WZ, def),
@@ -188,14 +217,6 @@ static void world_chunk_clean_liquid(struct chunk* chunk)
 			continue;
 		}
 		curr--;
-		if ((x == 0 && CHUNK_AT(left, CHUNK_WX - 1, y, z) != BLOCK_WATER) || CHUNK_AT(arr, x - 1, y, z) != BLOCK_WATER)
-		{
-			world_mesh_quad(mask, curr, LEFT);
-		}
-		if ((x == CHUNK_WX - 1 && CHUNK_AT(right, 0, y, z) != BLOCK_WATER) || CHUNK_AT(arr, x + 1, y, z) != BLOCK_WATER)
-		{
-			world_mesh_quad(mask, curr, RIGHT);
-		}
 		if (y == 0 || CHUNK_AT(arr, x, y - 1, z) != BLOCK_WATER)
 		{
 			world_mesh_quad(mask, curr, UP);
@@ -204,11 +225,47 @@ static void world_chunk_clean_liquid(struct chunk* chunk)
 		{
 			world_mesh_quad(mask, curr, DOWN);
 		}
-		if ((z == 0 && CHUNK_AT(backward, x, y, CHUNK_WZ - 1) != BLOCK_WATER) || CHUNK_AT(arr, x, y, z - 1) != BLOCK_WATER)
+		if (x == 0)
+		{
+			if (CHUNK_AT(left, CHUNK_WX - 1, y, z) != BLOCK_WATER)
+			{
+				world_mesh_quad(mask, curr, LEFT);
+			}
+		}
+		else if (CHUNK_AT(arr, x - 1, y, z) != BLOCK_WATER)
+		{
+			world_mesh_quad(mask, curr, LEFT);
+		}
+		if (x == CHUNK_WX - 1)
+		{
+			if (CHUNK_AT(right, 0, y, z) != BLOCK_WATER)
+			{
+				world_mesh_quad(mask, curr, RIGHT);
+			}
+		}
+		else if (CHUNK_AT(arr, x + 1, y, z) != BLOCK_WATER)
+		{
+			world_mesh_quad(mask, curr, RIGHT);
+		}
+		if (z == 0)
+		{
+			if (CHUNK_AT(backward, x, y, CHUNK_WZ - 1) != BLOCK_WATER)
+			{
+				world_mesh_quad(mask, curr, BACKWARD);
+			}
+		}
+		else if (CHUNK_AT(arr, x, y, z - 1) != BLOCK_WATER)
 		{
 			world_mesh_quad(mask, curr, BACKWARD);
 		}
-		if ((z == CHUNK_WZ - 1 && CHUNK_AT(forward, x, y, 0) != BLOCK_WATER) || CHUNK_AT(arr, x, y, z + 1) != BLOCK_WATER)
+		if (z == CHUNK_WZ - 1)
+		{
+			if (CHUNK_AT(forward, x, y, 0) != BLOCK_WATER)
+			{
+				world_mesh_quad(mask, curr, FORWARD);
+			}
+		}
+		else if (CHUNK_AT(arr, x, y, z + 1) != BLOCK_WATER)
 		{
 			world_mesh_quad(mask, curr, FORWARD);
 		}
@@ -286,6 +343,16 @@ void world_render(const shader_t solid, const shader_t liquid, float delta)
 		matrix_translation((vector3_t) { (float)chunk->x, 0.0F, (float)chunk->z }, transform);
 		graphics_shader_matrix("model", transform);
 		graphics_buffer_draw(chunk->liquid_buffer);
+	}
+
+	static int prev_tick = -1;
+	if (prev_tick != world_ticks())
+	{
+		prev_tick = world_ticks();
+		if (window_input_clicked(INPUT_TOGGLE_CHUNK_BORDERS))
+		{
+			display_debug_chunk_border = !display_debug_chunk_border;
+		}
 	}
 
 	if (display_debug_chunk_border)

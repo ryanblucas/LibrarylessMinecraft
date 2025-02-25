@@ -12,9 +12,9 @@ array_list_t chunk_list;
 void world_chunk_init(void)
 {
 	chunk_list = mc_list_create(sizeof(struct chunk));
-	for (int y = -8; y < 8; y++)
+	for (int y = -2; y < 2; y++)
 	{
-		for (int x = -8; x < 8; x++)
+		for (int x = -2; x < 2; x++)
 		{
 			world_chunk_create(x * 16, y * 16);
 		}
