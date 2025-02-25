@@ -256,7 +256,8 @@ void world_block_set(block_coords_t coords, block_type_t type)
 	world_block_update((block_coords_t) { coords.x, coords.y, coords.z + 1 });
 
 	chunk->arr[CHUNK_INDEX_OF(coords.x - chunk->x, coords.y, coords.z - chunk->z)] = type;
-	chunk->dirty_mask |= OPAQUE_BIT;
+	int bit = type == BLOCK_WATER ? LIQUID_BIT : OPAQUE_BIT;
+	chunk->dirty_mask |= bit;
 
 	struct chunk* neighbor = NULL;
 	if (coords.x - chunk->x == 0)
@@ -278,7 +279,7 @@ void world_block_set(block_coords_t coords, block_type_t type)
 	assert(neighbor != chunk);
 	if (neighbor)
 	{
-		neighbor->dirty_mask |= OPAQUE_BIT;
+		neighbor->dirty_mask |= bit;
 	}
 }
 

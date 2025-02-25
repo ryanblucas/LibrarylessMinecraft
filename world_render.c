@@ -30,12 +30,6 @@ static struct block_vertex_list
 	block_vertex_t array[];
 } *block_vertex_list;
 
-static struct vertex_list
-{
-	size_t reserved, count;
-	vertex_t array[];
-} *vertex_list;
-
 static void world_mesh_quad(int mask, int type, enum quad_normal normal)
 {
 	block_vertex_t a, b, c, d;
@@ -127,13 +121,8 @@ static inline const block_type_t* world_chunk_get_array_or_default(int x, int z,
 	return def;
 }
 
-static void world_chunk_try_clean(struct chunk* chunk)
+static void world_chunk_clean(struct chunk* chunk)
 {
-	if (chunk->dirty_mask == 0)
-	{
-		return;
-	}
-
 	static block_type_t def[CHUNK_BLOCK_COUNT];
 	const block_type_t* left = world_chunk_get_array_or_default(chunk->x - CHUNK_WX, chunk->z, def),
 		*right = world_chunk_get_array_or_default(chunk->x + CHUNK_WX, chunk->z, def),
@@ -143,8 +132,6 @@ static void world_chunk_try_clean(struct chunk* chunk)
 
 	for (int mask = 0; mask < CHUNK_BLOCK_COUNT; mask++)
 	{
-#undef IS_SOLID
-#define IS_SOLID(v) ((v) != BLOCK_AIR)
 		int x = CHUNK_X(mask), y = CHUNK_Y(mask), z = CHUNK_Z(mask);
 		block_type_t curr = chunk->arr[mask];
 		if (!IS_SOLID(curr))
@@ -183,6 +170,55 @@ static void world_chunk_try_clean(struct chunk* chunk)
 	chunk->dirty_mask ^= OPAQUE_BIT;
 }
 
+static void world_chunk_clean_liquid(struct chunk* chunk)
+{
+	static block_type_t def[CHUNK_BLOCK_COUNT];
+	const block_type_t* left = world_chunk_get_array_or_default(chunk->x - CHUNK_WX, chunk->z, def),
+		* right = world_chunk_get_array_or_default(chunk->x + CHUNK_WX, chunk->z, def),
+		* backward = world_chunk_get_array_or_default(chunk->x, chunk->z - CHUNK_WZ, def),
+		* forward = world_chunk_get_array_or_default(chunk->x, chunk->z + CHUNK_WZ, def);
+	const block_type_t* arr = chunk->arr;
+
+	for (int mask = 0; mask < CHUNK_BLOCK_COUNT; mask++)
+	{
+		int x = CHUNK_X(mask), y = CHUNK_Y(mask), z = CHUNK_Z(mask);
+		block_type_t curr = chunk->arr[mask];
+		if (curr != BLOCK_WATER)
+		{
+			continue;
+		}
+		curr--;
+		if ((x == 0 && CHUNK_AT(left, CHUNK_WX - 1, y, z) != BLOCK_WATER) || CHUNK_AT(arr, x - 1, y, z) != BLOCK_WATER)
+		{
+			world_mesh_quad(mask, curr, LEFT);
+		}
+		if ((x == CHUNK_WX - 1 && CHUNK_AT(right, 0, y, z) != BLOCK_WATER) || CHUNK_AT(arr, x + 1, y, z) != BLOCK_WATER)
+		{
+			world_mesh_quad(mask, curr, RIGHT);
+		}
+		if (y == 0 || CHUNK_AT(arr, x, y - 1, z) != BLOCK_WATER)
+		{
+			world_mesh_quad(mask, curr, UP);
+		}
+		if (y == CHUNK_WY - 1 || CHUNK_AT(arr, x, y + 1, z) != BLOCK_WATER)
+		{
+			world_mesh_quad(mask, curr, DOWN);
+		}
+		if ((z == 0 && CHUNK_AT(backward, x, y, CHUNK_WZ - 1) != BLOCK_WATER) || CHUNK_AT(arr, x, y, z - 1) != BLOCK_WATER)
+		{
+			world_mesh_quad(mask, curr, BACKWARD);
+		}
+		if ((z == CHUNK_WZ - 1 && CHUNK_AT(forward, x, y, 0) != BLOCK_WATER) || CHUNK_AT(arr, x, y, z + 1) != BLOCK_WATER)
+		{
+			world_mesh_quad(mask, curr, FORWARD);
+		}
+	}
+
+	graphics_buffer_modify(chunk->liquid_buffer, block_vertex_list->array, block_vertex_list->count);
+	block_vertex_list->count = 0;
+	chunk->dirty_mask ^= LIQUID_BIT;
+}
+
 void world_chunk_clean_mesh(int index)
 {
 	/*	This is NOT a greedy mesher. That's because texture wrapping is impossible with texture atlases, but using
@@ -195,15 +231,15 @@ void world_chunk_clean_mesh(int index)
 		block_vertex_list->count = 0;
 	}
 
-	if (!vertex_list)
-	{
-		vertex_list = mc_malloc(sizeof * vertex_list + sizeof * vertex_list->array * 36);
-		vertex_list->reserved = 36;
-		vertex_list->count = 0;
-	}
-
 	struct chunk* chunk = MC_LIST_CAST_GET(chunk_list, index, struct chunk);
-	world_chunk_try_clean(chunk);
+	if (chunk->dirty_mask & OPAQUE_BIT)
+	{
+		world_chunk_clean(chunk);
+	}
+	if (chunk->dirty_mask & LIQUID_BIT)
+	{
+		world_chunk_clean_liquid(chunk);
+	}
 }
 
 void world_render_init(void)

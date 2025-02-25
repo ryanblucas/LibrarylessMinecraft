@@ -67,7 +67,7 @@ struct chunk* world_chunk_create(int x_o, int z_o)
 
 	next->dirty_mask = OPAQUE_BIT;
 	next->opaque_buffer = graphics_buffer_create(NULL, 0, VERTEX_BLOCK);
-	next->liquid_buffer = graphics_buffer_create(NULL, 0, VERTEX_STANDARD);
+	next->liquid_buffer = graphics_buffer_create(NULL, 0, VERTEX_BLOCK);
 	return next;
 }
 

@@ -168,20 +168,10 @@ size_t mc_map_element_size(const map_t map)
 
 static inline struct map_pair* mc_map_pair(const map_t map, hash_t key)
 {
-	static double cnt = 0, amnt = 0, avg = 0;
-
 	for (int i = key % map->reserved; i < map->reserved; i++)
 	{
 		if (MC_MAP_INDEX(map, i).key == key)
 		{
-			cnt += i - key % map->reserved;
-			amnt++;
-			avg = cnt / amnt;
-			if (amnt > 1000)
-			{
-				amnt = 0;
-				cnt = 0;
-			}
 			return &MC_MAP_INDEX(map, i);
 		}
 	}
