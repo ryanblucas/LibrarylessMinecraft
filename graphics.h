@@ -43,7 +43,7 @@ typedef enum vertex_type
 } vertex_type_t;
 
 #define CREATE_BLOCK_VERTEX_POS(x, y, z)			((x) | ((z) << 5) | ((y) << 10))
-#define SET_BLOCK_VERTEX_TEXTURE(v, tx, ty, tid)	((v) | ((tx) << 19) | ((ty) << 20) | ((tid) << 21))
+#define SET_BLOCK_VERTEX_TEXTURE(v, tx, ty, tid, i)	((v) | ((tx) << 19) | ((ty) << 20) | ((tid) << 21) | ((i) << 29))
 
 /* Initializes graphics objects and state */
 void graphics_init(void);

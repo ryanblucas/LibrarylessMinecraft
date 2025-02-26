@@ -7,14 +7,16 @@
 #include "world.h"
 #include "perlin.h"
 
+#define RADIUS 8
+
 array_list_t chunk_list;
 
 void world_chunk_init(void)
 {
 	chunk_list = mc_list_create(sizeof(struct chunk));
-	for (int y = -2; y < 2; y++)
+	for (int y = -RADIUS; y < RADIUS; y++)
 	{
-		for (int x = -2; x < 2; x++)
+		for (int x = -RADIUS; x < RADIUS; x++)
 		{
 			world_chunk_create(x * 16, y * 16);
 		}

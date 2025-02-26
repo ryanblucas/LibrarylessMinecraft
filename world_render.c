@@ -32,6 +32,15 @@ static struct block_vertex_list
 
 static void world_mesh_quad(int mask, int type, enum quad_normal normal)
 {
+	static const faces[BLOCK_COUNT - 1][8] =
+	{
+		/* { 0, RIGHT, DOWN, BACKWARD, 0, LEFT, UP, FORWARD } */
+
+		{ 0, 1, 0, 1, 0, 1, 2, 1 }, /* BLOCK_GRASS */
+		{ 0, 0, 0, 0, 0, 0, 0, 0 }, /* BLOCK_DIRT */
+		{ 0, 0, 0, 0, 0, 0, 0, 0 }, /* BLOCK_STONE */
+		{ 0, 1, 0, 1, 0, 1, 1, 1 }, /* BLOCK_WATER */
+	};
 	block_vertex_t a, b, c, d;
 	switch (normal)
 	{
@@ -78,17 +87,17 @@ static void world_mesh_quad(int mask, int type, enum quad_normal normal)
 
 	if (normal & FLIPPED_BIT)
 	{
-		c = SET_BLOCK_VERTEX_TEXTURE(c, 0, 0, type);
-		b = SET_BLOCK_VERTEX_TEXTURE(b, 1, 0, type);
-		a = SET_BLOCK_VERTEX_TEXTURE(a, 1, 1, type);
-		d = SET_BLOCK_VERTEX_TEXTURE(d, 0, 1, type);
+		c = SET_BLOCK_VERTEX_TEXTURE(c, 0, 0, type, faces[type][normal]);
+		b = SET_BLOCK_VERTEX_TEXTURE(b, 1, 0, type, faces[type][normal]);
+		a = SET_BLOCK_VERTEX_TEXTURE(a, 1, 1, type, faces[type][normal]);
+		d = SET_BLOCK_VERTEX_TEXTURE(d, 0, 1, type, faces[type][normal]);
 	}
 	else
 	{
-		a = SET_BLOCK_VERTEX_TEXTURE(a, 1, 0, type);
-		b = SET_BLOCK_VERTEX_TEXTURE(b, 0, 0, type);
-		c = SET_BLOCK_VERTEX_TEXTURE(c, 0, 1, type);
-		d = SET_BLOCK_VERTEX_TEXTURE(d, 1, 1, type);
+		a = SET_BLOCK_VERTEX_TEXTURE(a, 1, 0, type, faces[type][normal]);
+		b = SET_BLOCK_VERTEX_TEXTURE(b, 0, 0, type, faces[type][normal]);
+		c = SET_BLOCK_VERTEX_TEXTURE(c, 0, 1, type, faces[type][normal]);
+		d = SET_BLOCK_VERTEX_TEXTURE(d, 1, 1, type, faces[type][normal]);
 	}
 
 	size_t curr = block_vertex_list->count;

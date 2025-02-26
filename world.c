@@ -268,7 +268,12 @@ void world_block_set(block_coords_t coords, block_type_t type)
 	{
 		neighbor = world_chunk_get(coords.x + 1, coords.z);
 	}
-	else if (coords.z - chunk->z == 0)
+	assert(neighbor != chunk);
+	if (neighbor)
+	{
+		neighbor->dirty_mask |= bit;
+	}
+	if (coords.z - chunk->z == 0)
 	{
 		neighbor = world_chunk_get(coords.x, coords.z - 1);
 	}
