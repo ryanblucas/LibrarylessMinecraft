@@ -133,7 +133,7 @@ void world_render_init(void);
 void world_render_destroy(void);
 
 /* Initializes world's chunk manager */
-void world_chunk_init(void);
+void world_chunk_init(unsigned int seed);
 /* Destroys chunk manager */
 void world_chunk_destroy(void);
 /* Creates chunk at (x, z). Rounds down to a multiple to 16 (ex. 14 -> 0, -5 -> -16) */

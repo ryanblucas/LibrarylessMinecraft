@@ -11,9 +11,12 @@
 
 array_list_t chunk_list;
 
-void world_chunk_init(void)
+static perlin_state_t perlin_terrain;
+
+void world_chunk_init(unsigned int seed)
 {
 	chunk_list = mc_list_create(sizeof(struct chunk));
+	perlin_terrain = perlin_create_with_seed(seed);
 	for (int y = -RADIUS; y < RADIUS; y++)
 	{
 		for (int x = -RADIUS; x < RADIUS; x++)
@@ -31,6 +34,7 @@ void world_chunk_destroy(void)
 		graphics_buffer_delete(&MC_LIST_CAST_GET(chunk_list, i, struct chunk)->liquid_buffer);
 	}
 	mc_list_destroy(&chunk_list);
+	perlin_delete(&perlin_terrain);
 }
 
 struct chunk* world_chunk_create(int x_o, int z_o)
@@ -53,7 +57,7 @@ struct chunk* world_chunk_create(int x_o, int z_o)
 
 	for (int i = 0; i < CHUNK_FLOOR_BLOCK_COUNT; i++)
 	{
-		int slice_height = perlin_brownian_at(CHUNK_FX(i) + next->x, CHUNK_FZ(i) + next->z, 6) * 32;
+		int slice_height = perlin_brownian_at(perlin_terrain, CHUNK_FX(i) + next->x, CHUNK_FZ(i) + next->z, 6) * 32;
 		slice_height += 64;
 		slice_height = max(min(slice_height, CHUNK_WY - 1), 0);
 		CHUNK_AT(next->arr, CHUNK_X(i), slice_height--, CHUNK_Z(i)) = BLOCK_GRASS;

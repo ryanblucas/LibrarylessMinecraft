@@ -19,7 +19,7 @@ void world_init(void)
 {
 	update_list = mc_set_create(sizeof(block_coords_t));
 	old_update_list = mc_set_create(sizeof(block_coords_t));
-	world_chunk_init();
+	world_chunk_init((unsigned int)window_time());
 	world_render_init();
 
 	entity_player_init(&player);
