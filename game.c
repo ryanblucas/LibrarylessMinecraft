@@ -39,6 +39,12 @@ void game_frame(float delta)
 	vector3_t interp_pos = vector3_add(player.prev_position, vector3_mul_scalar(vector3_sub(curr_pos, player.prev_position), elapsed / TICK_TIME));
 	camera_update(vector3_add(interp_pos, (vector3_t) { 0.0F, ENTITY_PLAYER_CAMERA_OFFSET - aabb_dimensions(player.hitbox).y / 2.0F, 0.0F }));
 
+	if (window_input_clicked(INPUT_REGENERATE_WORLD))
+	{
+		world_chunk_destroy();
+		world_chunk_init((unsigned int)window_time());
+	}
+
 	if (elapsed > TICK_TIME)
 	{
 		window_input_update();

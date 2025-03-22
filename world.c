@@ -312,7 +312,7 @@ void world_block_debug(block_coords_t coords, FILE* stream)
 		}
 	}
 
-	fprintf(stream, "(%i, %i, %i), chunk %i (%i, %i). Block name \"%s,\" block id: %i", 
+	fprintf(stream, "(%i, %i, %i), chunk %i (%i, %i). Block name \"%s,\" block id: %i\n", 
 		coords.x, coords.y, coords.z, i, chunk->x, chunk->z, name, id);
 }
 
