@@ -33,6 +33,12 @@ void world_destroy(void)
 	mc_set_destroy(&old_update_list);
 }
 
+void world_generate(unsigned int seed)
+{
+	world_chunk_destroy();
+	world_chunk_init(seed);
+}
+
 int world_ticks(void)
 {
 	return ticks;

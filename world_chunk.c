@@ -75,7 +75,7 @@ void world_chunk_init(unsigned int seed)
 			world_chunk_create(x * 16, y * 16);
 		}
 	}
-	int cave_count = 4 + rand() % 4;
+	int cave_count = 16 + rand() % 6;
 	for (int i = 0; i < cave_count; i++)
 	{
 		world_chunk_worm();

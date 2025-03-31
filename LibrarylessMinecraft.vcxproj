@@ -156,7 +156,6 @@
     <None Include="assets\shaders\line_fragment.glsl" />
     <None Include="assets\shaders\line_vertex.glsl" />
     <None Include="assets\shaders\liquid_fragment.glsl" />
-    <None Include="assets\shaders\liquid_vertex.glsl" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\atlas.bmp" />

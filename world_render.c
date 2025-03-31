@@ -40,6 +40,8 @@ static void world_mesh_quad(int mask, int type, enum quad_normal normal)
 		{ 0, 0, 0, 0, 0, 0, 0, 0 }, /* BLOCK_DIRT */
 		{ 0, 0, 0, 0, 0, 0, 0, 0 }, /* BLOCK_STONE */
 		{ 0, 1, 0, 1, 0, 1, 1, 1 }, /* BLOCK_WATER */
+		{ 0, 0, 1, 0, 0, 0, 1, 0 }, /* BLOCK_LOG */
+		{ 0, 0, 0, 0, 0, 0, 0, 0 }, /* BLOCK_LEAVES */
 	};
 	block_vertex_t a, b, c, d;
 	switch (normal)

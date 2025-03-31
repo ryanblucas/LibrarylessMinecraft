@@ -81,7 +81,6 @@
     <None Include="assets\shaders\block_fragment.glsl" />
     <None Include="assets\shaders\block_vertex.glsl" />
     <None Include="assets\shaders\liquid_fragment.glsl" />
-    <None Include="assets\shaders\liquid_vertex.glsl" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\test.bmp">

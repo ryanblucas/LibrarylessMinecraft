@@ -18,7 +18,7 @@ static sampler_t atlas;
 void game_init(void)
 {
 	block_shader = graphics_shader_load("assets/shaders/block_vertex.glsl", "assets/shaders/block_fragment.glsl");
-	liquid_shader = graphics_shader_load("assets/shaders/liquid_vertex.glsl", "assets/shaders/liquid_fragment.glsl");
+	liquid_shader = graphics_shader_load("assets/shaders/block_vertex.glsl", "assets/shaders/liquid_fragment.glsl");
 	atlas = graphics_sampler_load("assets/atlas.bmp");
 
 	world_init();
@@ -41,8 +41,7 @@ void game_frame(float delta)
 
 	if (window_input_clicked(INPUT_REGENERATE_WORLD))
 	{
-		world_chunk_destroy();
-		world_chunk_init((unsigned int)window_time());
+		world_generate((unsigned int)window_time());
 	}
 
 	if (elapsed > TICK_TIME)

@@ -28,6 +28,12 @@ enum
 	DEFINE_BLOCK(DIRT) \
 	DEFINE_BLOCK(STONE) \
 	DEFINE_BLOCK(WATER) \
+	DEFINE_BLOCK(LOG) \
+	DEFINE_BLOCK(LEAVES) \
+	DEFINE_BLOCK(ORE_GOLD) \
+	DEFINE_BLOCK(ORE_IRON) \
+	DEFINE_BLOCK(ORE_COAL) \
+	DEFINE_BLOCK(ORE_DIAMOND) \
 
 	BLOCK_LIST
 	BLOCK_COUNT
@@ -68,6 +74,7 @@ extern inline bool is_block_coords_equal(block_coords_t a, block_coords_t b)
 
 void world_init(void);
 void world_destroy(void);
+void world_generate(unsigned int seed);
 
 /* fetch game tick count */
 int world_ticks(void);

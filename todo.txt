@@ -1,6 +1,5 @@
 In order:
 	-Necessary-
-		Caves
 		Trees and random ores
 		Health system
 		User interface
@@ -9,6 +8,7 @@ In order:
 		Crafting
 		
 	-Optional-
+		Caves need to be generated on a chunk-by-chunk basis
 		Separate graphics_debug from graphics
 		Add color to debug primitives
 		Further speed up meshing chunks and generating them
