@@ -93,6 +93,49 @@ void world_chunk_destroy(void)
 	perlin_delete(&perlin_terrain);
 }
 
+static void world_chunk_spawn_vain(struct chunk* curr, block_type_t type, block_coords_t pos, int size_min, int size_max)
+{
+	if (CHUNK_AT(curr->arr, pos.x, pos.y, pos.z) != BLOCK_STONE)
+	{
+		return;
+	}
+	int size = rand() % (size_max - size_min) + size_min;
+	for (int i = 0; i < size; i++)
+	{
+		CHUNK_AT(curr->arr, pos.x, pos.y, pos.z) = type;
+		block_coords_t begin = pos;
+		for (int j = 0; is_block_coords_equal(begin, pos); j++)
+		{
+			if (j > 8)
+			{
+				printf("Trapped vain of type %s spawn at (%i, %i, %i)\n", world_block_stringify(type), pos.x, pos.y, pos.z);
+				return;
+			}
+			switch (rand() % 6)
+			{
+			case 0: /* left */
+				if (pos.x - 1 >= 0 && CHUNK_AT(curr->arr, pos.x - 1, pos.y, pos.z) != type) pos.x--;
+				break;
+			case 1: /* right */
+				if (pos.x + 1 < CHUNK_WX && CHUNK_AT(curr->arr, pos.x + 1, pos.y, pos.z) != type) pos.x++;
+				break;
+			case 2: /* forward */
+				if (pos.z - 1 >= 0 && CHUNK_AT(curr->arr, pos.x, pos.y, pos.z - 1) != type) pos.z--;
+				break;
+			case 3: /* backward */
+				if (pos.z + 1 < CHUNK_WZ && CHUNK_AT(curr->arr, pos.x, pos.y, pos.z + 1) != type) pos.z++;
+				break;
+			case 4: /* up */
+				if (CHUNK_AT(curr->arr, pos.x, pos.y + 1, pos.z) != type) pos.y++;
+				break;
+			case 5: /* down */
+				if (CHUNK_AT(curr->arr, pos.x, pos.y - 1, pos.z) != type) pos.y--;
+				break;
+			}
+		}
+	}
+}
+
 struct chunk* world_chunk_create(int x_o, int z_o)
 {
 	x_o = ROUND_DOWN(x_o, CHUNK_WX);
@@ -126,6 +169,20 @@ struct chunk* world_chunk_create(int x_o, int z_o)
 			CHUNK_AT(next->arr, CHUNK_X(i), slice_height--, CHUNK_Z(i)) = BLOCK_STONE;
 		}
 	}
+
+	for (int i = rand() % 20 + 10; i >= 0; i--)
+	{
+		world_chunk_spawn_vain(next, BLOCK_ORE_COAL, (block_coords_t) { rand() % CHUNK_WX, rand() % 60 + 2, rand() % CHUNK_WZ }, 2, 10);
+	}
+	for (int i = rand() % 16 + 4; i >= 0; i--)
+	{
+		world_chunk_spawn_vain(next, BLOCK_ORE_IRON, (block_coords_t) { rand() % CHUNK_WX, rand() % 50 + 2, rand() % CHUNK_WZ }, 1, 6);
+	}
+	for (int i = rand() % 6 + 3; i >= 0; i--)
+	{
+		world_chunk_spawn_vain(next, BLOCK_ORE_GOLD, (block_coords_t) { rand() % CHUNK_WX, rand() % 30 + 2, rand() % CHUNK_WZ }, 1, 6);
+	}
+	world_chunk_spawn_vain(next, BLOCK_ORE_DIAMOND, (block_coords_t) { rand() % CHUNK_WX, rand() % 22 + 2, rand() % CHUNK_WZ }, 1, 8);
 
 	next->dirty_mask = OPAQUE_BIT;
 	next->opaque_buffer = graphics_buffer_create(NULL, 0, VERTEX_BLOCK);

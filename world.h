@@ -104,6 +104,8 @@ void world_block_set(block_coords_t coords, block_type_t type);
 void world_block_debug(block_coords_t coords, FILE* stream);
 /* Updates block */
 void world_block_update(block_coords_t coords);
+/* Stringifys block type */
+const char* world_block_stringify(block_type_t type);
 
 /* Updates world */
 void world_update(float delta);

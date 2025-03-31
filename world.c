@@ -191,6 +191,18 @@ void world_block_update(block_coords_t coords)
 	mc_set_add(update_list, &coords, sizeof coords);
 }
 
+const char* world_block_stringify(block_type_t type)
+{
+	const char* name = "UNKNOWN";
+#define DEFINE_BLOCK(block) case BLOCK_ ## block: name = #block; break;
+	switch (type)
+	{
+		BLOCK_LIST
+	}
+#undef DEFINE_BLOCK
+	return name;
+}
+
 static inline void world_block_try_set(block_coords_t coords, block_type_t type)
 {
 	if (world_block_get(coords) == BLOCK_AIR)
