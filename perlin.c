@@ -80,7 +80,7 @@ double perlin_at(perlin_state_t state, double x, double y)
 {
 	int ix0 = FAST_FLOOR(x),	/* Integer part of x */
 		iy0 = FAST_FLOOR(y);	/* Integer part of y */
-	float fx0 = x - ix0,		/* Fractional part of x */
+	double fx0 = x - ix0,		/* Fractional part of x */
 		fy0 = y - iy0,			/* Fractional part of y */
 		fx1 = fx0 - 1.0f,
 		fy1 = fy0 - 1.0f;

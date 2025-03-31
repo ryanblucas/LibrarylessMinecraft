@@ -377,6 +377,12 @@ extern inline float vector3_distance(vector3_t a, vector3_t b)
 	return sqrtf(c.x * c.x + c.y * c.y + c.z * c.z);
 }
 
+extern inline float vector3_distance_squared(vector3_t a, vector3_t b)
+{
+	vector3_t c = vector3_sub(b, a);
+	return c.x * c.x + c.y * c.y + c.z * c.z;
+}
+
 /* Normalizes vector a and returns result */
 extern inline vector3_t vector3_normalize(vector3_t a)
 {
