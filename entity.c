@@ -24,6 +24,7 @@ void entity_player_init(entity_t* ent)
 
 	block_coords_t spawn;
 	for (spawn = (block_coords_t) { 8, CHUNK_WY, 8 }; !IS_SOLID(world_block_get(spawn)); spawn.y--);
+	spawn.y += 2;
 	ent->hitbox = aabb_set_center(ent->hitbox, block_coords_to_vector(spawn));
 }
 

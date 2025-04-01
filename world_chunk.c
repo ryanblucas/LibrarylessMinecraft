@@ -75,6 +75,7 @@ void world_chunk_init(unsigned int seed)
 			world_chunk_create(x * 16, y * 16);
 		}
 	}
+	/* TO DO: mines into trees */
 	int cave_count = 16 + rand() % 6;
 	for (int i = 0; i < cave_count; i++)
 	{
@@ -136,6 +137,85 @@ static void world_chunk_spawn_vain(struct chunk* curr, block_type_t type, block_
 	}
 }
 
+static void world_chunk_spawn_ores(struct chunk* next)
+{
+	for (int i = rand() % 20 + 10; i >= 0; i--)
+	{
+		world_chunk_spawn_vain(next, BLOCK_ORE_COAL, (block_coords_t) { rand() % CHUNK_WX, rand() % 60 + 2, rand() % CHUNK_WZ }, 2, 10);
+	}
+	for (int i = rand() % 16 + 4; i >= 0; i--)
+	{
+		world_chunk_spawn_vain(next, BLOCK_ORE_IRON, (block_coords_t) { rand() % CHUNK_WX, rand() % 50 + 2, rand() % CHUNK_WZ }, 1, 6);
+	}
+	for (int i = rand() % 6 + 3; i >= 0; i--)
+	{
+		world_chunk_spawn_vain(next, BLOCK_ORE_GOLD, (block_coords_t) { rand() % CHUNK_WX, rand() % 30 + 2, rand() % CHUNK_WZ }, 1, 6);
+	}
+	world_chunk_spawn_vain(next, BLOCK_ORE_DIAMOND, (block_coords_t) { rand() % CHUNK_WX, rand() % 22 + 2, rand() % CHUNK_WZ }, 1, 8);
+}
+
+static void world_chunk_spawn_terrain(struct chunk* next)
+{
+	for (int i = 0; i < CHUNK_FLOOR_BLOCK_COUNT; i++)
+	{
+		int slice_height = perlin_brownian_at(perlin_terrain, CHUNK_FX(i) + next->x, CHUNK_FZ(i) + next->z, 6) * 32;
+		slice_height += 64;
+		slice_height = max(min(slice_height, CHUNK_WY - 1), 0);
+		CHUNK_AT(next->arr, CHUNK_X(i), slice_height--, CHUNK_Z(i)) = BLOCK_GRASS;
+		for (int j = 1; j < 4 && slice_height >= 0; j++, slice_height--)
+		{
+			CHUNK_AT(next->arr, CHUNK_X(i), slice_height, CHUNK_Z(i)) = BLOCK_DIRT;
+		}
+		while (slice_height >= 0)
+		{
+			CHUNK_AT(next->arr, CHUNK_X(i), slice_height--, CHUNK_Z(i)) = BLOCK_STONE;
+		}
+	}
+}
+
+static inline void world_chunk_square(struct chunk* next, int x, int y, int z, int radius, block_type_t type)
+{
+	for (int xo = max(0, x - radius); xo <= min(CHUNK_WX - 1, x + radius); xo++)
+	{
+		for (int zo = max(0, z - radius); zo <= min(CHUNK_WZ - 1, z + radius); zo++)
+		{
+			if (CHUNK_AT(next->arr, xo, y, zo) == BLOCK_AIR)
+			{
+				CHUNK_AT(next->arr, xo, y, zo) = BLOCK_LEAVES;
+			}
+		}
+	}
+}
+
+static void world_chunk_spawn_trees(struct chunk* next)
+{
+	int count = rand() % 4;
+	for (int i = 0; i < count; i++)
+	{
+		int x = rand() % CHUNK_WX, z = rand() % CHUNK_WZ;
+		int y;
+		for (y = CHUNK_WY - 1; !IS_SOLID(CHUNK_AT(next->arr, x, y, z)); y--);
+		if (CHUNK_AT(next->arr, x, y, z) != BLOCK_GRASS || y >= 192)
+		{
+			continue;
+		}
+		int len = rand() % 3 + 4;
+		for (int j = 0; j < len; j++)
+		{
+			CHUNK_AT(next->arr, x, y + j, z) = BLOCK_LOG;
+		}
+		/* TO DO: at chunk borders, the leaves will be cut off */
+		for (int yo = len - 2; yo < len; yo++)
+		{
+			world_chunk_square(next, x, y + yo, z, 2, BLOCK_LEAVES);
+		}
+		for (int yo = len; yo < len + 2; yo++)
+		{
+			world_chunk_square(next, x, y + yo, z, 1, BLOCK_LEAVES);
+		}
+	}
+}
+
 struct chunk* world_chunk_create(int x_o, int z_o)
 {
 	x_o = ROUND_DOWN(x_o, CHUNK_WX);
@@ -154,35 +234,9 @@ struct chunk* world_chunk_create(int x_o, int z_o)
 
 	memset(next->arr, 0, sizeof next->arr);
 
-	for (int i = 0; i < CHUNK_FLOOR_BLOCK_COUNT; i++)
-	{
-		int slice_height = perlin_brownian_at(perlin_terrain, CHUNK_FX(i) + next->x, CHUNK_FZ(i) + next->z, 6) * 32;
-		slice_height += 64;
-		slice_height = max(min(slice_height, CHUNK_WY - 1), 0);
-		CHUNK_AT(next->arr, CHUNK_X(i), slice_height--, CHUNK_Z(i)) = BLOCK_GRASS;
-		for (int j = 1; j < 4 && slice_height >= 0; j++, slice_height--)
-		{
-			CHUNK_AT(next->arr, CHUNK_X(i), slice_height, CHUNK_Z(i)) = BLOCK_DIRT;
-		}
-		while (slice_height >= 0)
-		{
-			CHUNK_AT(next->arr, CHUNK_X(i), slice_height--, CHUNK_Z(i)) = BLOCK_STONE;
-		}
-	}
-
-	for (int i = rand() % 20 + 10; i >= 0; i--)
-	{
-		world_chunk_spawn_vain(next, BLOCK_ORE_COAL, (block_coords_t) { rand() % CHUNK_WX, rand() % 60 + 2, rand() % CHUNK_WZ }, 2, 10);
-	}
-	for (int i = rand() % 16 + 4; i >= 0; i--)
-	{
-		world_chunk_spawn_vain(next, BLOCK_ORE_IRON, (block_coords_t) { rand() % CHUNK_WX, rand() % 50 + 2, rand() % CHUNK_WZ }, 1, 6);
-	}
-	for (int i = rand() % 6 + 3; i >= 0; i--)
-	{
-		world_chunk_spawn_vain(next, BLOCK_ORE_GOLD, (block_coords_t) { rand() % CHUNK_WX, rand() % 30 + 2, rand() % CHUNK_WZ }, 1, 6);
-	}
-	world_chunk_spawn_vain(next, BLOCK_ORE_DIAMOND, (block_coords_t) { rand() % CHUNK_WX, rand() % 22 + 2, rand() % CHUNK_WZ }, 1, 8);
+	world_chunk_spawn_terrain(next);
+	world_chunk_spawn_ores(next);
+	world_chunk_spawn_trees(next);
 
 	next->dirty_mask = OPAQUE_BIT;
 	next->opaque_buffer = graphics_buffer_create(NULL, 0, VERTEX_BLOCK);
