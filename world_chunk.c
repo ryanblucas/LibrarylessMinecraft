@@ -193,7 +193,7 @@ static void world_chunk_spawn_trees(struct chunk* next)
 	int count = rand() % 4;
 	for (int i = 0; i < count; i++)
 	{
-		int x = rand() % CHUNK_WX, z = rand() % CHUNK_WZ;
+		int x = 2 + rand() % (CHUNK_WX - 4), z = 2 + rand() % (CHUNK_WZ - 4);
 		int y;
 		for (y = CHUNK_WY - 1; !IS_SOLID(CHUNK_AT(next->arr, x, y, z)); y--);
 		if (CHUNK_AT(next->arr, x, y, z) != BLOCK_GRASS || y >= 192)
@@ -205,7 +205,6 @@ static void world_chunk_spawn_trees(struct chunk* next)
 		{
 			CHUNK_AT(next->arr, x, y + j, z) = BLOCK_LOG;
 		}
-		/* TO DO: at chunk borders, the leaves will be cut off */
 		for (int yo = len - 2; yo < len; yo++)
 		{
 			world_chunk_square(next, x, y + yo, z, 2, BLOCK_LEAVES);
