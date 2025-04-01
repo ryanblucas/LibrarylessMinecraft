@@ -159,6 +159,8 @@ static void world_chunk_spawn_trees(struct chunk* next)
 		{
 			continue;
 		}
+		CHUNK_AT(next->arr, x, y, z) = BLOCK_DIRT;
+		y++;
 		int len = rand() % 3 + 4;
 		for (int j = 0; j < len; j++)
 		{
