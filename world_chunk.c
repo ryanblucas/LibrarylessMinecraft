@@ -7,6 +7,10 @@
 #include "world.h"
 #include "perlin.h"
 
+#if _DEBUG
+#include "window.h"
+#endif
+
 #define RADIUS 8
 #define BLOCK_RADIUS (RADIUS * 16)
 #define PERLIN_MODIFIER (1.0 / 16.0)
@@ -14,60 +18,17 @@
 
 array_list_t chunk_list;
 
+static array_list_t cave_blocks;
 static perlin_state_t perlin_terrain;
-
-static inline void world_chunk_remove_sphere(block_coords_t pos, int radius)
-{
-	vector3_t fpos = block_coords_to_vector(pos);
-	int radius_squared = radius * radius;
-	for (int x = pos.x - radius; x < pos.x + radius; x++)
-	{
-		for (int y = pos.y - radius; y < pos.y + radius; y++)
-		{
-			for (int z = pos.z - radius; z < pos.z + radius; z++)
-			{
-				if (vector3_distance_squared(fpos, (vector3_t) { x, y, z }) <= radius_squared)
-				{
-					struct chunk* chunk = world_chunk_get(x, z);
-					if (chunk && y >= 0 && y < CHUNK_WY)
-					{
-						CHUNK_AT(chunk->arr, x - chunk->x, y, z - chunk->z) = BLOCK_AIR;
-					}
-				}
-			}
-		}
-	}
-}
-
-static void world_chunk_worm(void)
-{
-	vector3_t seg_pos = { BLOCK_RADIUS - rand() % (BLOCK_RADIUS * 2), rand() % (CHUNK_WY / 3), BLOCK_RADIUS - rand() % (BLOCK_RADIUS * 2) };
-	vector3_t noise_pos = { 7.0 / 2048.0, 1163.0 / 2048.0, 409.0 / 2048.0 };
-	int segments = rand() % 64 + 64;
-	for (int i = 0; i < segments; i++)
-	{
-		double noiseX = perlin_at_3d(perlin_terrain, noise_pos.x + (i * TWISTINESS), noise_pos.y, noise_pos.z),
-			noiseY = perlin_at_3d(perlin_terrain, noise_pos.x, noise_pos.y + (i * TWISTINESS), noise_pos.z),
-			noiseZ = perlin_at_3d(perlin_terrain, noise_pos.x, noise_pos.y, noise_pos.z + (i * TWISTINESS));
-		vector3_t offset = { cosf(noiseX * 2.0 * M_PI), sinf(noiseY * 0.25 * M_PI), sinf(noiseZ * 2.0 * M_PI) };
-
-		/* slow way of doing it */
-		world_chunk_remove_sphere(vector_to_block_coords(seg_pos), 3);
-
-		offset.y = -fabsf(offset.y);
-		seg_pos = vector3_add(seg_pos, offset);
-
-		if (seg_pos.y <= 7)
-		{
-			break;
-		}
-	}
-}
 
 void world_chunk_init(unsigned int seed)
 {
 	chunk_list = mc_list_create(sizeof(struct chunk));
+	cave_blocks = mc_list_create(sizeof(block_coords_t));
 	perlin_terrain = perlin_create_with_seed(seed);
+#if _DEBUG
+	double start = window_time();
+#endif
 	for (int y = -RADIUS; y < RADIUS; y++)
 	{
 		for (int x = -RADIUS; x < RADIUS; x++)
@@ -75,12 +36,11 @@ void world_chunk_init(unsigned int seed)
 			world_chunk_create(x * 16, y * 16);
 		}
 	}
-	/* TO DO: mines into trees */
-	int cave_count = 16 + rand() % 6;
-	for (int i = 0; i < cave_count; i++)
-	{
-		world_chunk_worm();
-	}
+#if _DEBUG
+	double end = window_time();
+	printf("Generating %i chunks took %fs. Avg chunk gen time: %fs.\n", RADIUS * RADIUS * 4, end - start, (end - start) / (RADIUS * RADIUS * 4));
+#endif
+	mc_list_destroy(&cave_blocks);
 	assert(mc_list_count(chunk_list) == RADIUS * RADIUS * 4); /* TO DO: bug where chunks may just not spawn */
 }
 
@@ -110,7 +70,6 @@ static void world_chunk_spawn_vain(struct chunk* curr, block_type_t type, block_
 		{
 			if (j > 8)
 			{
-				printf("Trapped vain of type %s spawn at (%i, %i, %i)\n", world_block_stringify(type), pos.x, pos.y, pos.z);
 				return;
 			}
 			switch (rand() % 6)
@@ -216,6 +175,68 @@ static void world_chunk_spawn_trees(struct chunk* next)
 	}
 }
 
+static inline void world_chunk_remove_sphere(block_coords_t pos, int radius)
+{
+	vector3_t fpos = block_coords_to_vector(pos);
+	int radius_squared = radius * radius;
+	for (int x = pos.x - radius; x < pos.x + radius; x++)
+	{
+		for (int y = pos.y - radius; y < pos.y + radius; y++)
+		{
+			for (int z = pos.z - radius; z < pos.z + radius; z++)
+			{
+				if (vector3_distance_squared(fpos, (vector3_t) { x, y, z }) <= radius_squared)
+				{
+					if (y >= 0 && y < CHUNK_WY)
+					{
+						block_coords_t curr = (block_coords_t){ x, y, z };
+						mc_list_add(cave_blocks, mc_list_count(cave_blocks), &curr, sizeof curr);
+					}
+				}
+			}
+		}
+	}
+}
+
+static void world_chunk_worm(void)
+{
+	vector3_t seg_pos = { BLOCK_RADIUS - rand() % (BLOCK_RADIUS * 2), rand() % (CHUNK_WY / 3), BLOCK_RADIUS - rand() % (BLOCK_RADIUS * 2) };
+	vector3_t noise_pos = { 7.0 / 2048.0, 1163.0 / 2048.0, 409.0 / 2048.0 };
+	int segments = rand() % 64 + 64;
+	for (int i = 0; i < segments; i++)
+	{
+		double noiseX = perlin_at_3d(perlin_terrain, noise_pos.x + (i * TWISTINESS), noise_pos.y, noise_pos.z),
+			noiseY = perlin_at_3d(perlin_terrain, noise_pos.x, noise_pos.y + (i * TWISTINESS), noise_pos.z),
+			noiseZ = perlin_at_3d(perlin_terrain, noise_pos.x, noise_pos.y, noise_pos.z + (i * TWISTINESS));
+		vector3_t offset = { cosf(noiseX * 2.0 * M_PI), sinf(noiseY * 0.25 * M_PI), sinf(noiseZ * 2.0 * M_PI) };
+
+		/* slow way of doing it */
+		world_chunk_remove_sphere(vector_to_block_coords(seg_pos), 3);
+
+		offset.y = -fabsf(offset.y);
+		seg_pos = vector3_add(seg_pos, offset);
+
+		if (seg_pos.y <= 7)
+		{
+			break;
+		}
+	}
+}
+
+static void world_chunk_delete_cave_blocks(struct chunk* next)
+{
+	const block_coords_t* arr = mc_list_array(cave_blocks);
+	for (int i = mc_list_count(cave_blocks) - 1; i >= 0; i--)
+	{
+		if (arr[i].x >= next->x && arr[i].x < next->x + CHUNK_WX &&
+			arr[i].z >= next->z && arr[i].z < next->z + CHUNK_WZ)
+		{
+			CHUNK_AT(next->arr, arr[i].x - next->x, arr[i].y, arr[i].z - next->z) = BLOCK_AIR;
+			mc_list_remove(cave_blocks, i, NULL, 0);
+		}
+	}
+}
+
 struct chunk* world_chunk_create(int x_o, int z_o)
 {
 	x_o = ROUND_DOWN(x_o, CHUNK_WX);
@@ -235,6 +256,12 @@ struct chunk* world_chunk_create(int x_o, int z_o)
 	memset(next->arr, 0, sizeof next->arr);
 
 	world_chunk_spawn_terrain(next);
+	int cave_count = rand() % 2 + 1;
+	for (int i = 0; i < cave_count; i++)
+	{
+		world_chunk_worm();
+	}
+	world_chunk_delete_cave_blocks(next);
 	world_chunk_spawn_ores(next);
 	world_chunk_spawn_trees(next);
 
