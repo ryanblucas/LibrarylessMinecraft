@@ -81,6 +81,7 @@ void world_chunk_init(unsigned int seed)
 	{
 		world_chunk_worm();
 	}
+	assert(mc_list_count(chunk_list) == RADIUS * RADIUS * 4); /* TO DO: bug where chunks may just not spawn */
 }
 
 void world_chunk_destroy(void)
@@ -127,10 +128,10 @@ static void world_chunk_spawn_vain(struct chunk* curr, block_type_t type, block_
 				if (pos.z + 1 < CHUNK_WZ && CHUNK_AT(curr->arr, pos.x, pos.y, pos.z + 1) != type) pos.z++;
 				break;
 			case 4: /* up */
-				if (CHUNK_AT(curr->arr, pos.x, pos.y + 1, pos.z) != type) pos.y++;
+				if (pos.y + 1 < CHUNK_WY && CHUNK_AT(curr->arr, pos.x, pos.y + 1, pos.z) != type) pos.y++;
 				break;
 			case 5: /* down */
-				if (CHUNK_AT(curr->arr, pos.x, pos.y - 1, pos.z) != type) pos.y--;
+				if (pos.y - 1 >= 0 && CHUNK_AT(curr->arr, pos.x, pos.y - 1, pos.z) != type) pos.y--;
 				break;
 			}
 		}
