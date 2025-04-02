@@ -1,6 +1,5 @@
 In order:
 	-Necessary-
-		Health system
 		User interface
 		Inventory
 		Day-night cycle (with that, a lighting shader)

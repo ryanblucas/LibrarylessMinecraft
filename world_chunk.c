@@ -18,6 +18,7 @@
 
 array_list_t chunk_list;
 
+/* The problem is that if the chunk already exists, it doesn't dig into it. */
 static array_list_t cave_blocks;
 static perlin_state_t perlin_terrain;
 
@@ -40,7 +41,6 @@ void world_chunk_init(unsigned int seed)
 	double end = window_time();
 	printf("Generating %i chunks took %fs. Avg chunk gen time: %fs.\n", RADIUS * RADIUS * 4, end - start, (end - start) / (RADIUS * RADIUS * 4));
 #endif
-	mc_list_destroy(&cave_blocks);
 	assert(mc_list_count(chunk_list) == RADIUS * RADIUS * 4); /* TO DO: bug where chunks may just not spawn */
 }
 
@@ -52,6 +52,7 @@ void world_chunk_destroy(void)
 		graphics_buffer_delete(&MC_LIST_CAST_GET(chunk_list, i, struct chunk)->liquid_buffer);
 	}
 	mc_list_destroy(&chunk_list);
+	mc_list_destroy(&cave_blocks);
 	perlin_delete(&perlin_terrain);
 }
 
@@ -181,6 +182,10 @@ static inline void world_chunk_remove_sphere(block_coords_t pos, int radius)
 {
 	vector3_t fpos = block_coords_to_vector(pos);
 	int radius_squared = radius * radius;
+
+	int cx = pos.x, cz = pos.z;
+	bool chunk_exists = world_chunk_get(cx, cz);
+
 	for (int x = pos.x - radius; x < pos.x + radius; x++)
 	{
 		for (int y = pos.y - radius; y < pos.y + radius; y++)
@@ -189,7 +194,14 @@ static inline void world_chunk_remove_sphere(block_coords_t pos, int radius)
 			{
 				if (vector3_distance_squared(fpos, (vector3_t) { x, y, z }) <= radius_squared)
 				{
-					if (y >= 0 && y < CHUNK_WY)
+					if (ROUND_DOWN(cx, 16) != ROUND_DOWN(x, 16) || ROUND_DOWN(cz, 16) != ROUND_DOWN(z, 16))
+					{
+						chunk_exists = !!world_chunk_get(x, z);
+						cx = x;
+						cz = z;
+					}
+
+					if (y >= 0 && y < CHUNK_WY && !chunk_exists)
 					{
 						block_coords_t curr = (block_coords_t){ x, y, z };
 						mc_list_add(cave_blocks, mc_list_count(cave_blocks), &curr, sizeof curr);

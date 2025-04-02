@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <float.h>
 
+#define PLAYER_HEART_COUNT 20
+
 struct player_internal
 {
 	bool noclip_on;
@@ -22,10 +24,17 @@ void entity_player_init(entity_t* ent)
 	ent->reserved = mc_malloc(sizeof(struct player_internal));
 	memset(ent->reserved, 0, sizeof(struct player_internal));
 
+	ent->health = PLAYER_HEART_COUNT;
+
 	block_coords_t spawn;
 	for (spawn = (block_coords_t) { 8, CHUNK_WY, 8 }; !IS_SOLID(world_block_get(spawn)); spawn.y--);
 	spawn.y += 2;
 	ent->hitbox = aabb_set_center(ent->hitbox, block_coords_to_vector(spawn));
+}
+
+void entity_player_destroy(entity_t* ent)
+{
+	free(ent->reserved);
 }
 
 static void entity_player_move_standard(entity_t* ent, float delta)
@@ -65,7 +74,18 @@ static void entity_player_move_standard(entity_t* ent, float delta)
 		ent->velocity.y = 6.0F;
 	}
 
+	bool old_grounded = ent->grounded;
+	float old_y_velocity = ent->velocity.y;
 	entity_gravity_then_move(ent, delta);
+	if (ent->grounded && !old_grounded)
+	{
+		old_y_velocity += 12.0F;
+		old_y_velocity = -old_y_velocity * 1.4F;
+		if (old_y_velocity >= 1.0F)
+		{
+			entity_damage(ent, (int)old_y_velocity);
+		}
+	}
 }
 
 static void entity_player_move_noclip(entity_t* ent, float delta)
@@ -148,6 +168,12 @@ bool entity_player_is_noclipping(const entity_t* ent)
 {
 	struct player_internal* internal = ent->reserved;
 	return internal->noclip_on;
+}
+
+void entity_damage(entity_t* ent, int dmg)
+{
+	ent->health -= dmg;
+	printf("Entity hurt with %i damage, now at %i health\n", dmg, ent->health);
 }
 
 #define MOVEMENT_EPSILON	0.01F

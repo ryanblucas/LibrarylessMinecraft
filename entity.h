@@ -29,16 +29,24 @@ typedef struct entity
 	aabb_t hitbox;
 	bool grounded;
 	void* reserved;
+	int health;
 
 	vector3_t prev_position;
 } entity_t;
 
+/* TO DO: some way to check the right functions are being called */
+
 /* Initializes an entity struct to be a player one. */
 void entity_player_init(entity_t* ent);
+/* Destroys a player entity */
+void entity_player_destroy(entity_t* ent);
 /* Updates an entity using a player update */
 void entity_player_update(entity_t* ent, float delta);
 /* Is the player noclipping? */
 bool entity_player_is_noclipping(const entity_t* ent);
+
+/* Damages entity */
+void entity_damage(entity_t* ent, int dmg);
 
 /* Moves an entity given an addend, checking for collisions w/ the world */
 collision_face_t entity_move(entity_t* ent, vector3_t addend);
