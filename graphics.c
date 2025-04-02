@@ -15,6 +15,12 @@
 
 /* Any resource loading function aborts on failure because every resource is important. */
 
+struct sampler
+{
+	GLuint res;
+	int width, height;
+};
+
 struct shader
 {
 	GLuint id;
@@ -108,6 +114,12 @@ void graphics_clear(color_t color)
 	ASSERT_NO_ERROR();
 }
 
+void graphics_clear_depth(void)
+{
+	glClear(GL_DEPTH_BUFFER_BIT);
+	ASSERT_NO_ERROR();
+}
+
 sampler_t graphics_sampler_load(const char* path)
 {
 	/*	Bitmaps are saved LE, and the computer is assumed to match that. Only reason
@@ -186,14 +198,30 @@ sampler_t graphics_sampler_load(const char* path)
 	free(file);
 
 	ASSERT_NO_ERROR();
-	return res;
+
+	sampler_t handle = mc_malloc(sizeof * handle);
+	handle->res = res;
+	handle->width = width;
+	handle->height = height;
+	return handle;
 }
 
 void graphics_sampler_delete(sampler_t* sampler)
 {
+	free(*sampler);
 	glDeleteTextures(1, sampler);
-	*sampler = 0;
+	*sampler = NULL;
 	ASSERT_NO_ERROR();
+}
+
+int graphics_sampler_width(sampler_t sampler)
+{
+	return sampler->width;
+}
+
+int graphics_sampler_height(sampler_t sampler)
+{
+	return sampler->height;
 }
 
 void graphics_sampler_use(sampler_t handle)
@@ -203,8 +231,9 @@ void graphics_sampler_use(sampler_t handle)
 		return;
 	}
 
+	current_sampler = handle;
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, handle);
+	glBindTexture(GL_TEXTURE_2D, handle->res);
 	ASSERT_NO_ERROR();
 }
 

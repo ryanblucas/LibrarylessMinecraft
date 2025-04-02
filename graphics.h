@@ -14,7 +14,7 @@
 
 typedef uint32_t color_t;
 
-typedef int sampler_t;
+typedef struct sampler* sampler_t;
 typedef struct shader* shader_t;
 
 typedef struct vertex_buffer* vertex_buffer_t;
@@ -52,6 +52,8 @@ void graphics_destroy(void);
 
 /* Clears color and depth buffers. Clears color to color passed */
 void graphics_clear(color_t color);
+/* Clears depth buffer only */
+void graphics_clear_depth(void);
 
 /* Loads a DIB bitmap V3/V5 at path into VRAM and returns handle. */
 sampler_t graphics_sampler_load(const char* path);
@@ -59,6 +61,10 @@ sampler_t graphics_sampler_load(const char* path);
 void graphics_sampler_delete(sampler_t* sampler);
 /* Sets a sampler to use. */
 void graphics_sampler_use(sampler_t handle);
+/* queue width of sampler */
+int graphics_sampler_width(sampler_t sampler);
+/* queue height of sampler */
+int graphics_sampler_height(sampler_t sampler);
 
 /*	Loads shader given vertex shader path/directory and fragment shader path/directory. 
 	Both must be for OpenGL 4.6. Returns 0 on failure, or a handle to the shader object. */

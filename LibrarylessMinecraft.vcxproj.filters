@@ -45,6 +45,9 @@
     <ClCompile Include="perlin.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="interface.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="opengl.h">
@@ -74,6 +77,9 @@
     <ClInclude Include="perlin.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="interface.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="assets\shaders\line_fragment.glsl" />
@@ -81,12 +87,17 @@
     <None Include="assets\shaders\block_fragment.glsl" />
     <None Include="assets\shaders\block_vertex.glsl" />
     <None Include="assets\shaders\liquid_fragment.glsl" />
+    <None Include="assets\shaders\interface_vertex.glsl" />
+    <None Include="assets\shaders\interface_fragment.glsl" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\test.bmp">
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="assets\atlas.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\interface.bmp">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

@@ -5,12 +5,11 @@
 #include "entity.h"
 #include "camera.h"
 #include "graphics.h"
+#include "interface.h"
 #include "window.h"
 #include "world.h"
 #include <stdio.h>
 #include <float.h>
-
-#define PLAYER_HEART_COUNT 20
 
 struct player_internal
 {
@@ -25,6 +24,7 @@ void entity_player_init(entity_t* ent)
 	memset(ent->reserved, 0, sizeof(struct player_internal));
 
 	ent->health = PLAYER_HEART_COUNT;
+	interface_set_current_hearts(ent->health);
 
 	block_coords_t spawn;
 	for (spawn = (block_coords_t) { 8, CHUNK_WY, 8 }; !IS_SOLID(world_block_get(spawn)); spawn.y--);
@@ -174,6 +174,8 @@ void entity_damage(entity_t* ent, int dmg)
 {
 	ent->health -= dmg;
 	printf("Entity hurt with %i damage, now at %i health\n", dmg, ent->health);
+	/* TEMPORARY */
+	interface_set_current_hearts(ent->health);
 }
 
 #define MOVEMENT_EPSILON	0.01F

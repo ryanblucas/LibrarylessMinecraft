@@ -13,6 +13,8 @@
 #define ENTITY_DRAG_CONSTANT		10.0F
 #define ENTITY_GRAVITY_CONSTANT		2.5F
 
+#define PLAYER_HEART_COUNT 20
+
 typedef enum collision_face
 {
 	FACE_FORWARD =	0b100000,

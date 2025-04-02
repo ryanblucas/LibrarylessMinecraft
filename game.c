@@ -6,6 +6,7 @@
 #include "camera.h"
 #include "game.h"
 #include "graphics.h"
+#include "interface.h"
 #include "util.h"
 #include "window.h"
 
@@ -22,12 +23,16 @@ void game_init(void)
 	atlas = graphics_sampler_load("assets/atlas.bmp");
 
 	world_init();
+	interface_init();
 }
 
 void game_destroy(void)
 {
 	graphics_shader_delete(&block_shader);
 	graphics_sampler_delete(&atlas);
+
+	world_destroy();
+	interface_destroy();
 }
 
 void game_frame(float delta)
@@ -56,4 +61,5 @@ void game_frame(float delta)
 
 	graphics_sampler_use(atlas);
 	world_render(block_shader, liquid_shader, delta);
+	interface_draw();
 }

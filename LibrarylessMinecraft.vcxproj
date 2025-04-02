@@ -128,6 +128,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="interface.c" />
     <ClCompile Include="camera.c" />
     <ClCompile Include="entity.c" />
     <ClCompile Include="game.c" />
@@ -140,6 +141,7 @@
     <ClCompile Include="world_render.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="interface.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="game.h" />
     <ClInclude Include="graphics.h" />
@@ -153,12 +155,15 @@
   <ItemGroup>
     <None Include="assets\shaders\block_fragment.glsl" />
     <None Include="assets\shaders\block_vertex.glsl" />
+    <None Include="assets\shaders\interface_fragment.glsl" />
+    <None Include="assets\shaders\interface_vertex.glsl" />
     <None Include="assets\shaders\line_fragment.glsl" />
     <None Include="assets\shaders\line_vertex.glsl" />
     <None Include="assets\shaders\liquid_fragment.glsl" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\atlas.bmp" />
+    <Image Include="assets\interface.bmp" />
     <Image Include="assets\test.bmp" />
   </ItemGroup>
   <ItemGroup>
