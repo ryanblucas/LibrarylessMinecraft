@@ -67,16 +67,16 @@ static void interface_push_square(array_list_t vertices, vector3_t pos, float wx
 	d.tx = (up + ud) / atlas_width;
 	d.ty = vp / atlas_height;
 
-	mc_list_add(vertices, mc_list_count(vertices), &a, sizeof a);
 	mc_list_add(vertices, mc_list_count(vertices), &b, sizeof b);
-	mc_list_add(vertices, mc_list_count(vertices), &c, sizeof c);
-	mc_list_add(vertices, mc_list_count(vertices), &c, sizeof c);
-	mc_list_add(vertices, mc_list_count(vertices), &d, sizeof d);
 	mc_list_add(vertices, mc_list_count(vertices), &a, sizeof a);
+	mc_list_add(vertices, mc_list_count(vertices), &d, sizeof d);
+	mc_list_add(vertices, mc_list_count(vertices), &d, sizeof d);
+	mc_list_add(vertices, mc_list_count(vertices), &c, sizeof c);
+	mc_list_add(vertices, mc_list_count(vertices), &b, sizeof b);
 }
 
-#define HEART_SIZE		36
-#define HEART_SPACE_X	4
+#define HEART_SIZE		45
+#define HEART_SPACE_X	5
 
 static void interface_invalidate_hearts(array_list_t vertices)
 {
@@ -85,19 +85,19 @@ static void interface_invalidate_hearts(array_list_t vertices)
 	int bar_width = HEART_SIZE * max_hearts_2 + HEART_SPACE_X * (max_hearts_2 - 1);
 	for (int i = 0; i < max_hearts_2; i++)
 	{
-		interface_push_square(vertices, (vector3_t) { (width / 2 - bar_width / 2) + HEART_SIZE * i + HEART_SPACE_X * (i - 1), 0, 0.9 }, HEART_SIZE, HEART_SIZE, 18, 0, 9, 9);
+		interface_push_square(vertices, (vector3_t) { (width / 2 - bar_width / 2) + HEART_SIZE * i + HEART_SPACE_X * (i - 1), height - HEART_SIZE, 0.9 }, HEART_SIZE, HEART_SIZE, 18, 0, 9, 9);
 	}
 	int x = 0;
 	for (int i = 0; i < hearts_2; i++)
 	{
 		x = (width / 2 - bar_width / 2) + HEART_SIZE * i + HEART_SPACE_X * (i - 1);
-		interface_push_square(vertices, (vector3_t) { x, 0, 0 }, HEART_SIZE, HEART_SIZE, 0, 0, 9, 9);
+		interface_push_square(vertices, (vector3_t) { x, height - HEART_SIZE, 0 }, HEART_SIZE, HEART_SIZE, 0, 0, 9, 9);
 	}
 
-	if (hearts % 2 != 0)
+	if (hearts % 2 != 0 && hearts > 0)
 	{
 		x += HEART_SIZE + HEART_SPACE_X;
-		interface_push_square(vertices, (vector3_t) { x, 0, 0 }, HEART_SIZE, HEART_SIZE, 9, 0, 9, 9);
+		interface_push_square(vertices, (vector3_t) { x, height - HEART_SIZE, 0 }, HEART_SIZE, HEART_SIZE, 9, 0, 9, 9);
 	}
 }
 

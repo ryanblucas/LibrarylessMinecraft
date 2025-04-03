@@ -16,5 +16,9 @@ void main()
 	_pos.x /= width / 2;
 	_pos.y /= height / 2;
 	_pos.xy -= 1.0;
+
+	tex_pos.y = 1.0 - tex_pos.y;
+	_pos.y = -_pos.y;
+
 	gl_Position = vec4(_pos, 1.0);
 }
