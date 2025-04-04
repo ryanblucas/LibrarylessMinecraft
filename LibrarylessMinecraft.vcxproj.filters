@@ -80,6 +80,9 @@
     <ClInclude Include="interface.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="item.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="assets\shaders\line_fragment.glsl" />

@@ -415,6 +415,15 @@ vertex_buffer_t graphics_buffer_create(const void* start, int len, vertex_type_t
 		glEnableVertexAttribArray(1);
 		glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, sizeof(debug_vertex_t), (void*)(sizeof(float) * 3));
 		break;
+	case VERTEX_INTERFACE:
+		glBufferData(GL_ARRAY_BUFFER, len * sizeof(interface_vertex_t), start, GL_STATIC_DRAW);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(interface_vertex_t), (void*)0);
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(interface_vertex_t), (void*)(sizeof(float) * 3));
+		glEnableVertexAttribArray(2);
+		glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, sizeof(interface_vertex_t), (void*)(sizeof(float) * 5));
+		break;
 
 	default:
 		assert(false);
@@ -433,6 +442,7 @@ void graphics_buffer_modify(vertex_buffer_t buffer, const void* buf, int len)
 	case VERTEX_STANDARD: element_size = sizeof(vertex_t); break;
 	case VERTEX_POSITION: element_size = sizeof(float) * 3; break;
 	case VERTEX_DEBUG: element_size = sizeof(debug_vertex_t); break;
+	case VERTEX_INTERFACE: element_size = sizeof(interface_vertex_t); break;
 
 	default:
 		assert(false);

@@ -34,12 +34,20 @@ typedef struct debug_vertex
 	color_t color;
 } debug_vertex_t;
 
+typedef struct interface_vertex
+{
+	float x, y, z;
+	float tx, ty;
+	color_t color;
+} interface_vertex_t;
+
 typedef enum vertex_type
 {
 	VERTEX_BLOCK,		/* Expects array of block_vertex_t */
 	VERTEX_STANDARD,	/* Expects array of vertex_t */
 	VERTEX_POSITION,	/* Expects array of floats, three making up one position */
-	VERTEX_DEBUG		/* Expects array of debug_vertex_t */
+	VERTEX_DEBUG,		/* Expects array of debug_vertex_t */
+	VERTEX_INTERFACE	/* Expects array of interface_vertex_t */
 } vertex_type_t;
 
 #define CREATE_BLOCK_VERTEX_POS(x, y, z)			((x) | ((z) << 5) | ((y) << 10))

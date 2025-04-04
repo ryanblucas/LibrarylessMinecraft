@@ -61,5 +61,5 @@ void game_frame(float delta)
 
 	graphics_sampler_use(atlas);
 	world_render(block_shader, liquid_shader, delta);
-	interface_draw();
+	interface_frame();
 }

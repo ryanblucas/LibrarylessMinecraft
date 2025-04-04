@@ -19,11 +19,14 @@ static int width, height;
 static int max_hearts;
 static int hearts;
 
+static bool show_inventory;
+static inventory_t* inventory;
+
 void interface_init(void)
 {
 	shader = graphics_shader_load("assets/shaders/interface_vertex.glsl", "assets/shaders/interface_fragment.glsl");
 	atlas = graphics_sampler_load("assets/interface.bmp");
-	buffer = graphics_buffer_create(0, 0, VERTEX_STANDARD);
+	buffer = graphics_buffer_create(0, 0, VERTEX_INTERFACE);
 
 	atlas_width = graphics_sampler_width(atlas);
 	atlas_height = graphics_sampler_height(atlas);
@@ -41,7 +44,9 @@ void interface_destroy(void)
 
 static void interface_push_square(array_list_t vertices, vector3_t pos, float wx, float wy, float up, float vp, float ud, float vd)
 {
-	vertex_t a, b, c, d;
+	interface_vertex_t a, b, c, d;
+
+	a.color = b.color = c.color = d.color = COLOR_CREATE(255, 255, 255);
 
 	a.x = pos.x;
 	a.y = pos.y;
@@ -101,7 +106,7 @@ static void interface_invalidate_hearts(array_list_t vertices)
 	}
 }
 
-void interface_draw(void)
+void interface_frame(void)
 {
 	graphics_clear_depth();
 
@@ -124,7 +129,7 @@ void interface_draw(void)
 
 	if (invalidate)
 	{
-		array_list_t vertices = mc_list_create(sizeof(vertex_t));
+		array_list_t vertices = mc_list_create(sizeof(interface_vertex_t));
 
 		interface_invalidate_hearts(vertices);
 
@@ -156,4 +161,19 @@ void interface_set_current_hearts(int _hearts)
 {
 	hearts = _hearts;
 	invalidate = true;
+}
+
+bool interface_is_inventory_open(void)
+{
+
+}
+
+void interface_set_inventory_state(bool state)
+{
+
+}
+
+void interface_set_inventory(inventory_t* inventory)
+{
+
 }

@@ -5,6 +5,7 @@
 #pragma once
 
 #include "util.h"
+#include "item.h"
 
 #define ENTITY_PLAYER_SPEED			100.0F
 #define ENTITY_PLAYER_SNEAK_SPEED	50.0F

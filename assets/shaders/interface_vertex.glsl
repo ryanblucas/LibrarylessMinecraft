@@ -2,15 +2,18 @@
 
 layout (location = 0) in vec3 pos;
 layout (location = 1) in vec2 i_tex_pos;
+layout (location = 2) in int i_tint;
 
 uniform int width;
 uniform int height;
 
 out vec2 tex_pos;
+flat out int tint;
 
 void main()
 {
 	tex_pos = i_tex_pos;
+	tint = i_tint;
 
 	vec3 _pos = pos;
 	_pos.x /= width / 2;

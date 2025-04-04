@@ -145,6 +145,7 @@
     <ClInclude Include="camera.h" />
     <ClInclude Include="game.h" />
     <ClInclude Include="graphics.h" />
+    <ClInclude Include="item.h" />
     <ClInclude Include="opengl.h" />
     <ClInclude Include="entity.h" />
     <ClInclude Include="perlin.h" />
