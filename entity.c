@@ -26,6 +26,7 @@ void entity_player_init(entity_t* ent)
 
 	ent->health = PLAYER_HEART_COUNT;
 	interface_set_current_hearts(ent->health);
+	interface_set_inventory(&((struct player_internal*)ent->reserved)->inventory);
 
 	block_coords_t spawn;
 	for (spawn = (block_coords_t) { 8, CHUNK_WY, 8 }; !IS_SOLID(world_block_get(spawn)); spawn.y--);

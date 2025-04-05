@@ -7,6 +7,8 @@
 #include "graphics.h"
 #include "window.h"
 
+#include "opengl.h"
+
 static shader_t shader;
 static sampler_t atlas;
 static int atlas_width, atlas_height;
@@ -80,35 +82,54 @@ static void interface_push_square(array_list_t vertices, vector3_t pos, float wx
 	mc_list_add(vertices, mc_list_count(vertices), &b, sizeof b);
 }
 
-#define HEART_SIZE		45
-#define HEART_SPACE_X	5
+#define UI_SCALE		3
+
+#define HEART_SIZE		(9 * UI_SCALE)
+#define HEART_SPACE_X	0
+
+#define REAL_BAR_WIDTH		182
+#define REAL_BAR_HEIGHT		22
+#define BAR_WIDTH			(REAL_BAR_WIDTH * UI_SCALE)
+#define BAR_HEIGHT			(REAL_BAR_HEIGHT * UI_SCALE)
+#define REAL_CURRENT_WIDTH	24
+#define REAL_CURRENT_HEIGHT	23
+#define CURRENT_WIDTH		(REAL_CURRENT_WIDTH * UI_SCALE)
+#define CURRENT_HEIGHT		(REAL_CURRENT_HEIGHT * UI_SCALE)
 
 static void interface_invalidate_hearts(array_list_t vertices)
 {
+	int y = height - BAR_HEIGHT - HEART_SIZE - UI_SCALE;
 	int max_hearts_2 = (max_hearts + 1) / 2,
 		hearts_2 = hearts / 2;
-	int bar_width = HEART_SIZE * max_hearts_2 + HEART_SPACE_X * (max_hearts_2 - 1);
 	for (int i = 0; i < max_hearts_2; i++)
 	{
-		interface_push_square(vertices, (vector3_t) { (width / 2 - bar_width / 2) + HEART_SIZE * i + HEART_SPACE_X * (i - 1), height - HEART_SIZE, -0.8F }, HEART_SIZE, HEART_SIZE, 18, 0, 9, 9);
+		interface_push_square(vertices, (vector3_t) { (width / 2 - BAR_WIDTH / 2) + HEART_SIZE * i + HEART_SPACE_X * (i - 1), y, -0.8F }, HEART_SIZE, HEART_SIZE, 18, 0, 9, 9);
 	}
 	int x = 0;
 	for (int i = 0; i < hearts_2; i++)
 	{
-		x = (width / 2 - bar_width / 2) + HEART_SIZE * i + HEART_SPACE_X * (i - 1);
-		interface_push_square(vertices, (vector3_t) { x, height - HEART_SIZE, -0.9F }, HEART_SIZE, HEART_SIZE, 0, 0, 9, 9);
+		x = (width / 2 - BAR_WIDTH / 2) + HEART_SIZE * i + HEART_SPACE_X * (i - 1);
+		interface_push_square(vertices, (vector3_t) { x, y, -0.9F }, HEART_SIZE, HEART_SIZE, 0, 0, 9, 9);
 	}
 
 	if (hearts % 2 != 0 && hearts > 0)
 	{
 		x += HEART_SIZE + HEART_SPACE_X;
-		interface_push_square(vertices, (vector3_t) { x, height - HEART_SIZE, -0.9F }, HEART_SIZE, HEART_SIZE, 9, 0, 9, 9);
+		interface_push_square(vertices, (vector3_t) { x, y, -0.9F }, HEART_SIZE, HEART_SIZE, 9, 0, 9, 9);
 	}
 }
 
-static void interface_invalidate_inventory(array_list_t vertices)
+static void interface_invalidate_hotbar(array_list_t vertices)
 {
+	interface_push_square(vertices, (vector3_t) { width / 2 - BAR_WIDTH / 2, height - BAR_HEIGHT, -0.8F }, BAR_WIDTH, BAR_HEIGHT, 0, 9, REAL_BAR_WIDTH, REAL_BAR_HEIGHT);
 
+	if (!inventory)
+	{
+		return;
+	}
+
+	interface_push_square(vertices, (vector3_t) { width / 2 - BAR_WIDTH / 2 + inventory->active_slot * CURRENT_WIDTH - UI_SCALE, height - BAR_HEIGHT - UI_SCALE, -0.9F },
+		CURRENT_WIDTH, CURRENT_HEIGHT, 182, 0, REAL_CURRENT_WIDTH, REAL_CURRENT_HEIGHT);
 }
 
 void interface_frame(void)
@@ -137,6 +158,7 @@ void interface_frame(void)
 		array_list_t vertices = mc_list_create(sizeof(interface_vertex_t));
 
 		interface_invalidate_hearts(vertices);
+		interface_invalidate_hotbar(vertices);
 
 		graphics_buffer_modify(buffer, mc_list_array(vertices), mc_list_count(vertices));
 		mc_list_destroy(&vertices);
