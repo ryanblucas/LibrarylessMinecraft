@@ -164,6 +164,13 @@ void entity_player_update(entity_t* ent, float delta)
 			world_block_set(bc, to_place + 1);
 		}
 	}
+
+	internal->inventory.active_slot += window_mouse_wheel_delta();
+	if (internal->inventory.active_slot < 0)
+	{
+		internal->inventory.active_slot += 9;
+	}
+	internal->inventory.active_slot %= 9;
 }
 
 bool entity_player_is_noclipping(const entity_t* ent)

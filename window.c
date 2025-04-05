@@ -119,11 +119,17 @@ static bool gl_load(void)
 }
 
 static pointi_t dims;
+/* Current position of wheel */
+static int mouse_wheel;
 
 static LRESULT window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
 	switch (msg)
 	{
+	case WM_MOUSEWHEEL:
+		mouse_wheel += GET_WHEEL_DELTA_WPARAM(wparam) / WHEEL_DELTA;
+		return 0;
+
 	case WM_SIZE:
 		if (wparam != SIZE_MINIMIZED)
 		{
@@ -239,6 +245,19 @@ pointi_t window_mouse_position(void)
 	return curr;
 }
 
+/* Current tick's position of wheel */
+static int prev_wheel, curr_wheel;
+
+int window_mouse_wheel_position(void)
+{
+	return curr_wheel;
+}
+
+int window_mouse_wheel_delta(void)
+{
+	return curr_wheel - prev_wheel;
+}
+
 static bool state_array[INPUT_COUNT * 2];
 static bool* state = state_array, *prev_state = state_array + INPUT_COUNT;
 
@@ -277,6 +296,9 @@ void window_input_update(void)
 	state[INPUT_TOGGLE_WIREFRAME] =		holding_ctrl && GetAsyncKeyState('W');
 	state[INPUT_TOGGLE_CHUNK_BORDERS] = holding_ctrl && GetAsyncKeyState('C');
 	state[INPUT_TOGGLE_VISUALIZE_AXIS] = holding_ctrl && GetAsyncKeyState('A');
+
+	prev_wheel = curr_wheel;
+	curr_wheel = mouse_wheel;
 }
 
 bool window_input_down(input_t input)

@@ -23,6 +23,7 @@ static int hearts;
 
 static bool show_inventory;
 static inventory_t* inventory;
+static hash_t inventory_previous;
 
 void interface_init(void)
 {
@@ -128,7 +129,7 @@ static void interface_invalidate_hotbar(array_list_t vertices)
 		return;
 	}
 
-	interface_push_square(vertices, (vector3_t) { width / 2 - BAR_WIDTH / 2 + inventory->active_slot * CURRENT_WIDTH - UI_SCALE, height - BAR_HEIGHT - UI_SCALE, -0.9F },
+	interface_push_square(vertices, (vector3_t) { width / 2 - BAR_WIDTH / 2 + inventory->active_slot * (BAR_WIDTH / 9) - UI_SCALE, height - BAR_HEIGHT - UI_SCALE, -0.9F },
 		CURRENT_WIDTH, CURRENT_HEIGHT, 182, 0, REAL_CURRENT_WIDTH, REAL_CURRENT_HEIGHT);
 }
 
@@ -152,6 +153,10 @@ void interface_frame(void)
 		graphics_shader_int("height", height);
 		invalidate = true;
 	}
+
+	hash_t inventory_hash = mc_hash(inventory, sizeof * inventory);
+	invalidate |= inventory_hash != inventory_previous;
+	inventory_hash = inventory_previous;
 
 	if (invalidate)
 	{

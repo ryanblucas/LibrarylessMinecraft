@@ -22,6 +22,10 @@ pointi_t window_get_dimensions(void);
 pointi_t window_mouse_delta(void);
 /* Returns current mouse position */
 pointi_t window_mouse_position(void);
+/* Returns current tick's mouse wheel position (- for down, + for up) */
+int window_mouse_wheel_position(void);
+/* Returns the difference between last tick's wheel position and this current tick's wheel position */
+int window_mouse_wheel_delta(void);
 
 typedef enum input
 {
