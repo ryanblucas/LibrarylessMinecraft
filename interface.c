@@ -90,20 +90,25 @@ static void interface_invalidate_hearts(array_list_t vertices)
 	int bar_width = HEART_SIZE * max_hearts_2 + HEART_SPACE_X * (max_hearts_2 - 1);
 	for (int i = 0; i < max_hearts_2; i++)
 	{
-		interface_push_square(vertices, (vector3_t) { (width / 2 - bar_width / 2) + HEART_SIZE * i + HEART_SPACE_X * (i - 1), height - HEART_SIZE, 0.9 }, HEART_SIZE, HEART_SIZE, 18, 0, 9, 9);
+		interface_push_square(vertices, (vector3_t) { (width / 2 - bar_width / 2) + HEART_SIZE * i + HEART_SPACE_X * (i - 1), height - HEART_SIZE, -0.8F }, HEART_SIZE, HEART_SIZE, 18, 0, 9, 9);
 	}
 	int x = 0;
 	for (int i = 0; i < hearts_2; i++)
 	{
 		x = (width / 2 - bar_width / 2) + HEART_SIZE * i + HEART_SPACE_X * (i - 1);
-		interface_push_square(vertices, (vector3_t) { x, height - HEART_SIZE, 0 }, HEART_SIZE, HEART_SIZE, 0, 0, 9, 9);
+		interface_push_square(vertices, (vector3_t) { x, height - HEART_SIZE, -0.9F }, HEART_SIZE, HEART_SIZE, 0, 0, 9, 9);
 	}
 
 	if (hearts % 2 != 0 && hearts > 0)
 	{
 		x += HEART_SIZE + HEART_SPACE_X;
-		interface_push_square(vertices, (vector3_t) { x, height - HEART_SIZE, 0 }, HEART_SIZE, HEART_SIZE, 9, 0, 9, 9);
+		interface_push_square(vertices, (vector3_t) { x, height - HEART_SIZE, -0.9F }, HEART_SIZE, HEART_SIZE, 9, 0, 9, 9);
 	}
+}
+
+static void interface_invalidate_inventory(array_list_t vertices)
+{
+
 }
 
 void interface_frame(void)
@@ -165,15 +170,17 @@ void interface_set_current_hearts(int _hearts)
 
 bool interface_is_inventory_open(void)
 {
-
+	return show_inventory;
 }
 
 void interface_set_inventory_state(bool state)
 {
-
+	show_inventory = state;
+	invalidate = true;
 }
 
-void interface_set_inventory(inventory_t* inventory)
+void interface_set_inventory(inventory_t* _inventory)
 {
-
+	inventory = _inventory;
+	invalidate = true;
 }

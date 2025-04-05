@@ -487,6 +487,31 @@ void graphics_buffer_draw(vertex_buffer_t buffer)
 	ASSERT_NO_ERROR();
 }
 
+static bool wireframe_on;
+
+void graphics_debug_set_wireframe_mode(bool mode)
+{
+	if (wireframe_on == mode)
+	{
+		return;
+	}
+
+	wireframe_on = mode;
+	if (mode)
+	{
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	}
+	else
+	{
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	}
+}
+
+bool graphics_debug_get_wireframe_mode(void)
+{
+	return wireframe_on;
+}
+
 void graphics_debug_clear(void)
 {
 	mc_list_splice(primitives, 0, mc_list_count(primitives));
@@ -590,20 +615,6 @@ void graphics_debug_set_cube(vector3_t pos, vector3_t dim)
 
 void graphics_debug_draw(void)
 {
-	if (window_input_clicked(INPUT_TOGGLE_WIREFRAME))
-	{
-		static bool wireframe;
-		wireframe = !wireframe;
-		if (wireframe)
-		{
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		}
-		else
-		{
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		}
-	}
-
 	static bool visualize_axis;
 	if (window_input_clicked(INPUT_TOGGLE_VISUALIZE_AXIS))
 	{

@@ -14,6 +14,7 @@
 struct player_internal
 {
 	bool noclip_on;
+	inventory_t inventory;
 };
 
 void entity_player_init(entity_t* ent)

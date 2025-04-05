@@ -49,17 +49,26 @@ void game_frame(float delta)
 		world_generate((unsigned int)window_time());
 	}
 
+	static bool wireframe_on;
 	if (elapsed > TICK_TIME)
 	{
 		window_input_update();
 		player.rotation = (vector3_t){ camera_yaw(), camera_pitch(), 0.0F };
 		world_update(elapsed);
 		elapsed -= TICK_TIME;
+
+		if (window_input_clicked(INPUT_TOGGLE_WIREFRAME))
+		{
+			wireframe_on = !wireframe_on;
+		}
 	}
 
 	graphics_clear(COLOR_CREATE(0x64, 0x95, 0xED));
-
 	graphics_sampler_use(atlas);
+
+	graphics_debug_set_wireframe_mode(wireframe_on);
 	world_render(block_shader, liquid_shader, delta);
+
+	graphics_debug_set_wireframe_mode(false);
 	interface_frame();
 }

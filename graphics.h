@@ -106,6 +106,11 @@ typedef struct debug_buffer
 	vector3_t position;		/* Offset to render vertex buffer */
 } debug_buffer_t;
 
+/* Sets wireframe mode */
+void graphics_debug_set_wireframe_mode(bool mode);
+/* Gets if wireframe mode is on */
+bool graphics_debug_get_wireframe_mode(void);
+
 /* Clears debug buffer */
 void graphics_debug_clear(void);
 /* Sets line to draw from "begin" to "end" */
