@@ -21,21 +21,30 @@ static int width, height;
 static int max_hearts;
 static int hearts;
 
+static vertex_buffer_t hotbar_items;
 static bool show_inventory;
 static inventory_t* inventory;
 static hash_t inventory_previous;
 
-void interface_init(void)
+static sampler_t items;
+static int items_width, items_height;
+
+void interface_init(sampler_t item_atlas)
 {
 	shader = graphics_shader_load("assets/shaders/interface_vertex.glsl", "assets/shaders/interface_fragment.glsl");
 	atlas = graphics_sampler_load("assets/interface.bmp");
 	buffer = graphics_buffer_create(0, 0, VERTEX_INTERFACE);
+	hotbar_items = graphics_buffer_create(0, 0, VERTEX_INTERFACE);
 
 	atlas_width = graphics_sampler_width(atlas);
 	atlas_height = graphics_sampler_height(atlas);
 
 	max_hearts = PLAYER_HEART_COUNT;
 	invalidate = true;
+
+	items = item_atlas;
+	items_width = graphics_sampler_width(items);
+	items_height = graphics_sampler_height(items);
 }
 
 void interface_destroy(void)
@@ -43,9 +52,10 @@ void interface_destroy(void)
 	graphics_shader_delete(&shader);
 	graphics_sampler_delete(&atlas);
 	graphics_buffer_delete(&buffer);
+	graphics_buffer_delete(&hotbar_items);
 }
 
-static void interface_push_square(array_list_t vertices, vector3_t pos, float wx, float wy, float up, float vp, float ud, float vd)
+static void interface_push_square(array_list_t vertices, int atlas_wx, int atlas_wy, vector3_t pos, float wx, float wy, float up, float vp, float ud, float vd)
 {
 	interface_vertex_t a, b, c, d;
 
@@ -54,26 +64,26 @@ static void interface_push_square(array_list_t vertices, vector3_t pos, float wx
 	a.x = pos.x;
 	a.y = pos.y;
 	a.z = pos.z;
-	a.tx = up / atlas_width;
-	a.ty = vp / atlas_height;
+	a.tx = up / atlas_wx;
+	a.ty = vp / atlas_wy;
 
 	b.x = pos.x;
 	b.y = pos.y + wy;
 	b.z = pos.z;
-	b.tx = up / atlas_width;
-	b.ty = (vp + vd) / atlas_height;
+	b.tx = up / atlas_wx;
+	b.ty = (vp + vd) / atlas_wy;
 
 	c.x = pos.x + wx;
 	c.y = pos.y + wy;
 	c.z = pos.z;
-	c.tx = (up + ud) / atlas_width;
-	c.ty = (vp + vd) / atlas_height;
+	c.tx = (up + ud) / atlas_wx;
+	c.ty = (vp + vd) / atlas_wy;
 
 	d.x = pos.x + wx;
 	d.y = pos.y;
 	d.z = pos.z;
-	d.tx = (up + ud) / atlas_width;
-	d.ty = vp / atlas_height;
+	d.tx = (up + ud) / atlas_wx;
+	d.ty = vp / atlas_wy;
 
 	mc_list_add(vertices, mc_list_count(vertices), &b, sizeof b);
 	mc_list_add(vertices, mc_list_count(vertices), &a, sizeof a);
@@ -104,33 +114,43 @@ static void interface_invalidate_hearts(array_list_t vertices)
 		hearts_2 = hearts / 2;
 	for (int i = 0; i < max_hearts_2; i++)
 	{
-		interface_push_square(vertices, (vector3_t) { (width / 2 - BAR_WIDTH / 2) + HEART_SIZE * i + HEART_SPACE_X * (i - 1), y, -0.8F }, HEART_SIZE, HEART_SIZE, 18, 0, 9, 9);
+		interface_push_square(vertices, atlas_width, atlas_height, (vector3_t) { (width / 2 - BAR_WIDTH / 2) + HEART_SIZE * i + HEART_SPACE_X * (i - 1), y, -0.8F }, HEART_SIZE, HEART_SIZE, 18, 0, 9, 9);
 	}
 	int x = 0;
 	for (int i = 0; i < hearts_2; i++)
 	{
 		x = (width / 2 - BAR_WIDTH / 2) + HEART_SIZE * i + HEART_SPACE_X * (i - 1);
-		interface_push_square(vertices, (vector3_t) { x, y, -0.9F }, HEART_SIZE, HEART_SIZE, 0, 0, 9, 9);
+		interface_push_square(vertices, atlas_width, atlas_height, (vector3_t) { x, y, -0.9F }, HEART_SIZE, HEART_SIZE, 0, 0, 9, 9);
 	}
 
 	if (hearts % 2 != 0 && hearts > 0)
 	{
 		x += HEART_SIZE + HEART_SPACE_X;
-		interface_push_square(vertices, (vector3_t) { x, y, -0.9F }, HEART_SIZE, HEART_SIZE, 9, 0, 9, 9);
+		interface_push_square(vertices, atlas_width, atlas_height, (vector3_t) { x, y, -0.9F }, HEART_SIZE, HEART_SIZE, 9, 0, 9, 9);
 	}
 }
 
-static void interface_invalidate_hotbar(array_list_t vertices)
+static void interface_invalidate_hotbar(array_list_t vertices, array_list_t hotbar_items)
 {
-	interface_push_square(vertices, (vector3_t) { width / 2 - BAR_WIDTH / 2, height - BAR_HEIGHT, -0.8F }, BAR_WIDTH, BAR_HEIGHT, 0, 9, REAL_BAR_WIDTH, REAL_BAR_HEIGHT);
-
 	if (!inventory)
 	{
 		return;
 	}
 
-	interface_push_square(vertices, (vector3_t) { width / 2 - BAR_WIDTH / 2 + inventory->active_slot * (BAR_WIDTH / 9) - UI_SCALE, height - BAR_HEIGHT - UI_SCALE, -0.9F },
+	interface_push_square(vertices, atlas_width, atlas_height, (vector3_t) { width / 2 - BAR_WIDTH / 2, height - BAR_HEIGHT, -0.7F }, BAR_WIDTH, BAR_HEIGHT, 0, 9, REAL_BAR_WIDTH, REAL_BAR_HEIGHT);
+	interface_push_square(vertices, atlas_width, atlas_height, (vector3_t) { width / 2 - BAR_WIDTH / 2 + inventory->active_slot * (BAR_WIDTH / 9) - UI_SCALE, height - BAR_HEIGHT - UI_SCALE, -0.8F },
 		CURRENT_WIDTH, CURRENT_HEIGHT, 182, 0, REAL_CURRENT_WIDTH, REAL_CURRENT_HEIGHT);
+	
+	for (int i = 0; i < 9; i++)
+	{
+		block_type_t type = inventory->items[i];
+		if (type != BLOCK_AIR)
+		{
+			type--; /* because of BLOCK_AIR not being in atlas */
+			interface_push_square(hotbar_items, items_width, items_height, (vector3_t) { width / 2 - BAR_WIDTH / 2 + 3 * UI_SCALE + i * (20 * UI_SCALE), height - BAR_HEIGHT + 3 * UI_SCALE, -0.9F },
+				16 * UI_SCALE, 16 * UI_SCALE, type * 16, 0, 16, 16);
+		}
+	}
 }
 
 void interface_frame(void)
@@ -161,16 +181,22 @@ void interface_frame(void)
 	if (invalidate)
 	{
 		array_list_t vertices = mc_list_create(sizeof(interface_vertex_t));
+		array_list_t hotbar_items_vertices = mc_list_create(sizeof(interface_vertex_t));
 
 		interface_invalidate_hearts(vertices);
-		interface_invalidate_hotbar(vertices);
+		interface_invalidate_hotbar(vertices, hotbar_items_vertices);
 
 		graphics_buffer_modify(buffer, mc_list_array(vertices), mc_list_count(vertices));
+		graphics_buffer_modify(hotbar_items, mc_list_array(hotbar_items_vertices), mc_list_count(hotbar_items_vertices));
+
 		mc_list_destroy(&vertices);
+		mc_list_destroy(&hotbar_items_vertices);
 		invalidate = false;
 	}
 
 	graphics_buffer_draw(buffer);
+	graphics_sampler_use(items);
+	graphics_buffer_draw(hotbar_items);
 }
 
 int interface_get_max_hearts(void)

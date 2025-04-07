@@ -8,7 +8,7 @@
 #include <stdbool.h>
 
 /* Initializes user interface */
-void interface_init(void);
+void interface_init(sampler_t item_atlas);
 /* Destroys objects used by user interface */
 void interface_destroy(void);
 /* Updates then draws user interface */

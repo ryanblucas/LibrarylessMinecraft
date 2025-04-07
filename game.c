@@ -23,7 +23,7 @@ void game_init(void)
 	atlas = graphics_sampler_load("assets/atlas.bmp");
 
 	world_init();
-	interface_init();
+	interface_init(atlas);
 }
 
 void game_destroy(void)

@@ -25,8 +25,15 @@ void entity_player_init(entity_t* ent)
 	memset(ent->reserved, 0, sizeof(struct player_internal));
 
 	ent->health = PLAYER_HEART_COUNT;
+	struct player_internal* internal = (struct player_internal*)ent->reserved;
+
+	internal->inventory.items[0] = BLOCK_GRASS;
+	internal->inventory.items[1] = BLOCK_DIRT;
+	internal->inventory.items[2] = BLOCK_STONE;
+	internal->inventory.items[3] = BLOCK_LOG;
+
 	interface_set_current_hearts(ent->health);
-	interface_set_inventory(&((struct player_internal*)ent->reserved)->inventory);
+	interface_set_inventory(&internal->inventory);
 
 	block_coords_t spawn;
 	for (spawn = (block_coords_t) { 8, CHUNK_WY, 8 }; !IS_SOLID(world_block_get(spawn)); spawn.y--);
@@ -126,16 +133,6 @@ void entity_player_update(entity_t* ent, float delta)
 		ent->velocity.y = 0.0F;
 	}
 
-	static block_type_t to_place;
-	if (window_input_clicked(INPUT_CYCLE_BLOCK_FORWARD))
-	{
-		to_place = (to_place + 1) % (BLOCK_COUNT - 1);
-	}
-	else if (window_input_clicked(INPUT_CYCLE_BLOCK_BACKWARD))
-	{
-		to_place = (BLOCK_COUNT + to_place - 2) % (BLOCK_COUNT - 1);
-	}
-
 	struct player_internal* internal = ent->reserved;
 	if (window_input_clicked(INPUT_TOGGLE_NOCLIP))
 	{
@@ -161,7 +158,7 @@ void entity_player_update(entity_t* ent, float delta)
 		block_coords_t bc = world_ray_neighbor(world_ray_cast(camera_position(), camera_forward(), 5.0F, RAY_SOLID));
 		if (!aabb_collides_aabb(ent->hitbox, (aabb_t) { .min = block_coords_to_vector(bc), .max = vector3_add_scalar(block_coords_to_vector(bc), 1.0F) }))
 		{
-			world_block_set(bc, to_place + 1);
+			world_block_set(bc, internal->inventory.items[internal->inventory.active_slot]);
 		}
 	}
 
