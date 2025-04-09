@@ -142,6 +142,16 @@ void entity_player_update(entity_t* ent, float delta)
 		entity_player_move_standard(ent, delta);
 	}
 
+	if (window_input_clicked(INPUT_OPEN_INVENTORY))
+	{
+		interface_set_inventory_state(!interface_is_inventory_open());
+	}
+
+	if (interface_is_inventory_open())
+	{
+		return;
+	}
+
 	if (window_input_clicked(INPUT_BREAK_BLOCK))
 	{
 		world_block_set(world_ray_cast(camera_position(), camera_forward(), 5.0F, RAY_SOLID).block, BLOCK_AIR);
@@ -153,10 +163,6 @@ void entity_player_update(entity_t* ent, float delta)
 		{
 			world_block_set(bc, internal->inventory.items[internal->inventory.active_slot]);
 		}
-	}
-	if (window_input_clicked(INPUT_OPEN_INVENTORY))
-	{
-		interface_set_inventory_state(!interface_is_inventory_open());
 	}
 
 	internal->inventory.active_slot += window_mouse_wheel_delta();

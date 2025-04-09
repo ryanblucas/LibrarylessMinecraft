@@ -29,6 +29,8 @@ static hash_t inventory_previous;
 static sampler_t items;
 static int items_width, items_height;
 
+static int grabbed_item_index = -1;
+
 void interface_init(sampler_t item_atlas)
 {
 	shader = graphics_shader_load("assets/shaders/interface_vertex.glsl", "assets/shaders/interface_fragment.glsl");
