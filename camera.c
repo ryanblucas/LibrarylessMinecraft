@@ -4,6 +4,7 @@
 
 #include "camera.h"
 #include "graphics.h"
+#include "interface.h"
 #include "window.h"
 #include "world.h"
 
@@ -124,6 +125,10 @@ void camera_view_projection(matrix_t out)
 void camera_update(vector3_t pos)
 {
 	pointi_t dm = window_mouse_delta();
+	if (interface_is_inventory_open())
+	{
+		dm.x = dm.y = 0;
+	}
 	float yaw = camera_yaw() + DEGREES_TO_RADIANS(dm.x),
 		pitch = camera_pitch() - DEGREES_TO_RADIANS(dm.y);
 	yaw = fmodf(2 * M_PI + yaw, 2 * M_PI);

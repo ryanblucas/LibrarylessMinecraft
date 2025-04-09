@@ -9,6 +9,7 @@
 #include "camera.h"
 #include "game.h"
 #include "graphics.h"
+#include "interface.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include "util.h"
@@ -224,7 +225,7 @@ static void window_mouse_update(void)
 		lock_mouse = !lock_mouse;
 	}
 
-	if (lock_mouse)
+	if (lock_mouse && !interface_is_inventory_open())
 	{
 		RECT dims;
 		GetWindowRect(window_handle, &dims);
@@ -285,6 +286,8 @@ void window_input_update(void)
 
 	state[INPUT_BREAK_BLOCK] =			GetAsyncKeyState(VK_LBUTTON);
 	state[INPUT_PLACE_BLOCK] =			GetAsyncKeyState(VK_RBUTTON);
+	state[INPUT_OPEN_INVENTORY] =		GetAsyncKeyState(VK_TAB);
+
 	state[INPUT_UPDATE_BLOCK] =			holding_ctrl && GetAsyncKeyState(VK_MBUTTON);
 	state[INPUT_QUEUE_BLOCK_INFO] =		!holding_ctrl && GetAsyncKeyState(VK_MBUTTON);
 	state[INPUT_REGENERATE_WORLD] =		holding_ctrl && GetAsyncKeyState('R');

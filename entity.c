@@ -46,16 +46,15 @@ void entity_player_destroy(entity_t* ent)
 	free(ent->reserved);
 }
 
-static void entity_player_move_standard(entity_t* ent, float delta)
+static vector3_t entity_player_make_move_vector(vector3_t forward, vector3_t right)
 {
-	vector3_t forward = camera_forward(),
-		right = camera_right();
-	forward.y = 0.0F;
-	forward = vector3_normalize(forward);
-	right.y = 0.0F;
-	right = vector3_normalize(right);
-
 	vector3_t desired = { 0 };
+
+	if (interface_is_inventory_open())
+	{
+		return desired;
+	}
+
 	if (window_input_down(INPUT_FORWARD))
 	{
 		desired = vector3_add(desired, forward);
@@ -72,7 +71,19 @@ static void entity_player_move_standard(entity_t* ent, float delta)
 	{
 		desired = vector3_sub(desired, right);
 	}
-	desired = vector3_normalize(desired);
+	return vector3_normalize(desired);
+}
+
+static void entity_player_move_standard(entity_t* ent, float delta)
+{
+	vector3_t forward = camera_forward(),
+		right = camera_right();
+	forward.y = 0.0F;
+	forward = vector3_normalize(forward);
+	right.y = 0.0F;
+	right = vector3_normalize(right);
+
+	vector3_t desired = entity_player_make_move_vector(forward, right);
 
 	float speed = window_input_down(INPUT_SNEAK) ? ENTITY_PLAYER_SNEAK_SPEED : ENTITY_PLAYER_SPEED,
 		friction = 1.0F / (1 + delta * ENTITY_DRAG_CONSTANT);
@@ -99,27 +110,9 @@ static void entity_player_move_standard(entity_t* ent, float delta)
 
 static void entity_player_move_noclip(entity_t* ent, float delta)
 {
-	vector3_t desired = { 0 };
-	vector3_t forward = camera_forward(),
-		right = camera_right();
-	if (window_input_down(INPUT_FORWARD))
-	{
-		desired = vector3_add(desired, forward);
-	}
-	else if (window_input_down(INPUT_BACKWARD))
-	{
-		desired = vector3_sub(desired, forward);
-	}
-	if (window_input_down(INPUT_LEFT))
-	{
-		desired = vector3_add(desired, right);
-	}
-	else if (window_input_down(INPUT_RIGHT))
-	{
-		desired = vector3_sub(desired, right);
-	}
+	vector3_t desired = entity_player_make_move_vector(camera_forward(), camera_right());
 	float speed = window_input_down(INPUT_SNEAK) ? 30.0F : 15.0F;
-	desired = vector3_mul_scalar(vector3_normalize(desired), delta * speed);
+	desired = vector3_mul_scalar(desired, delta * speed);
 	ent->hitbox = aabb_translate(ent->hitbox, desired);
 }
 
@@ -160,6 +153,10 @@ void entity_player_update(entity_t* ent, float delta)
 		{
 			world_block_set(bc, internal->inventory.items[internal->inventory.active_slot]);
 		}
+	}
+	if (window_input_clicked(INPUT_OPEN_INVENTORY))
+	{
+		interface_set_inventory_state(!interface_is_inventory_open());
 	}
 
 	internal->inventory.active_slot += window_mouse_wheel_delta();

@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "graphics.h"
 #include "item.h"
 #include <stdbool.h>
 
