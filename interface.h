@@ -7,6 +7,17 @@
 #include "graphics.h"
 #include "item.h"
 #include <stdbool.h>
+#include "window.h"
+
+typedef struct rectanglei
+{
+	int x, y, wx, wy;
+} rectanglei_t;
+
+extern inline bool rectangle_is_point_inside(rectanglei_t rect, pointi_t point)
+{
+	return point.x >= rect.x && point.y >= rect.y && point.x < rect.x + rect.wx && point.y < rect.y + rect.wy;
+}
 
 /* Initializes user interface */
 void interface_init(sampler_t item_atlas);

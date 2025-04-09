@@ -7,8 +7,6 @@
 #include "graphics.h"
 #include "window.h"
 
-#include "opengl.h"
-
 static shader_t shader;
 static sampler_t atlas;
 static int atlas_width, atlas_height;
@@ -26,17 +24,22 @@ static bool show_inventory;
 static inventory_t* inventory;
 static hash_t inventory_previous;
 
+static rectanglei_t armor_inventory, main_inventory, hotbar_inventory;
+
 static sampler_t items;
 static int items_width, items_height;
 
+static vertex_buffer_t dynamic;
 static int grabbed_item_index = -1;
 
 void interface_init(sampler_t item_atlas)
 {
 	shader = graphics_shader_load("assets/shaders/interface_vertex.glsl", "assets/shaders/interface_fragment.glsl");
 	atlas = graphics_sampler_load("assets/interface.bmp");
+
 	buffer = graphics_buffer_create(0, 0, VERTEX_INTERFACE);
 	hotbar_items = graphics_buffer_create(0, 0, VERTEX_INTERFACE);
+	dynamic = graphics_buffer_create(0, 0, VERTEX_INTERFACE);
 
 	atlas_width = graphics_sampler_width(atlas);
 	atlas_height = graphics_sampler_height(atlas);
@@ -53,8 +56,10 @@ void interface_destroy(void)
 {
 	graphics_shader_delete(&shader);
 	graphics_sampler_delete(&atlas);
-	graphics_buffer_delete(&buffer);
+
+	graphics_buffer_delete(&dynamic);
 	graphics_buffer_delete(&hotbar_items);
+	graphics_buffer_delete(&buffer);
 }
 
 static void interface_push_square(array_list_t vertices, int atlas_wx, int atlas_wy, vector3_t pos, float wx, float wy, float up, float vp, float ud, float vd)
@@ -202,8 +207,13 @@ static void interface_invalidate_hotbar(array_list_t vertices, array_list_t hotb
 		interface_push_ui_square(vertices, (vector3_t) { 0, 0, 0.0F }, width, height, 0, 44, 1, 1);
 		
 		vector3_t origin = interface_create_panel(vertices, (vector3_t) { width / 2 - INVENTORY_WIDTH / 2, height / 2 - INVENTORY_HEIGHT / 2, -0.1F }, INVENTORY_WIDTH, INVENTORY_HEIGHT);
-
 		vector3_t armor = (vector3_t){ origin.x + UI_SCALE * 3, origin.y + UI_SCALE * 3, -0.2F };
+
+		armor_inventory.x = armor.x;
+		armor_inventory.y = armor.y;
+		armor_inventory.wx = SLOT_WIDTH;
+		armor_inventory.wy = SLOT_HEIGHT * 4;
+
 		for (int i = 0; i < 4; i++)
 		{
 			interface_push_ui_square(vertices, armor, SLOT_WIDTH, SLOT_HEIGHT, 188, 23, REAL_SLOT_WIDTH, REAL_SLOT_HEIGHT);
@@ -211,10 +221,15 @@ static void interface_invalidate_hotbar(array_list_t vertices, array_list_t hotb
 			armor.y += SLOT_HEIGHT;
 		}
 
-		vector3_t inv = (vector3_t){ 0, origin.y + UI_SCALE * 78, -0.2F };
+		vector3_t inv = (vector3_t){ origin.x + UI_SCALE * 3, origin.y + UI_SCALE * 78, -0.2F };
+
+		main_inventory.x = inv.x;
+		main_inventory.y = inv.y;
+		main_inventory.wx = SLOT_WIDTH * 9;
+		main_inventory.wy = SLOT_HEIGHT * 3;
+
 		for (int i = 0; i < 3; i++)
 		{
-			inv.x = origin.x + UI_SCALE * 3;
 			for (int j = 0; j < 9; j++)
 			{
 				block_type_t item = inventory->items[(i + 1) * 9 + j];
@@ -226,11 +241,18 @@ static void interface_invalidate_hotbar(array_list_t vertices, array_list_t hotb
 				interface_push_ui_square(vertices, inv, SLOT_WIDTH, SLOT_HEIGHT, 188, 23, REAL_SLOT_WIDTH, REAL_SLOT_HEIGHT);
 				inv.x += SLOT_WIDTH;
 			}
+			inv.x = (float)main_inventory.x;
 			inv.y += SLOT_HEIGHT;
 		}
 
 		inv.x = origin.x + UI_SCALE * 3;
 		inv.y += UI_SCALE * 3;
+
+		hotbar_inventory.x = inv.x;
+		hotbar_inventory.y = inv.y;
+		hotbar_inventory.wx = SLOT_WIDTH * 9;
+		hotbar_inventory.wy = SLOT_HEIGHT;
+
 		for (int i = 0; i < 9; i++)
 		{
 			block_type_t item = inventory->items[i];
@@ -242,6 +264,37 @@ static void interface_invalidate_hotbar(array_list_t vertices, array_list_t hotb
 			interface_push_ui_square(vertices, inv, SLOT_WIDTH, SLOT_HEIGHT, 188, 23, REAL_SLOT_WIDTH, REAL_SLOT_HEIGHT);
 			inv.x += SLOT_WIDTH;
 		}
+	}
+}
+
+static inline vector3_t interface_inventory_check_region(rectanglei_t region, pointi_t mouse_pos)
+{
+	vector3_t pos = { 0 };
+	if (rectangle_is_point_inside(region, mouse_pos))
+	{
+		pos.z = -0.9F;
+		mouse_pos.x -= region.x;
+		mouse_pos.y -= region.y;
+		mouse_pos.x /= SLOT_WIDTH;
+		mouse_pos.y /= SLOT_HEIGHT;
+		pos.x = region.x + mouse_pos.x * SLOT_WIDTH;
+		pos.y = region.y + mouse_pos.y * SLOT_WIDTH;
+	}
+	return pos;
+}
+
+static void interface_inventory_do_dynamic(array_list_t vertices)
+{
+	pointi_t mouse_pos = window_mouse_position();
+	vector3_t pos = { 0 };
+
+	pos = vector3_add(pos, interface_inventory_check_region(main_inventory, mouse_pos));
+	pos = vector3_add(pos, interface_inventory_check_region(hotbar_inventory, mouse_pos));
+	pos = vector3_add(pos, interface_inventory_check_region(armor_inventory, mouse_pos));
+
+	if (pos.z != 0.0F)
+	{
+		interface_push_ui_square(vertices, pos, SLOT_WIDTH, SLOT_HEIGHT, 1, 44, 1, 1);
 	}
 }
 
@@ -285,10 +338,21 @@ void interface_frame(void)
 		invalidate = false;
 	}
 
+	if (show_inventory)
+	{
+		array_list_t vertices = mc_list_create(sizeof(interface_vertex_t));
+
+		interface_inventory_do_dynamic(vertices);
+
+		graphics_buffer_modify(dynamic, mc_list_array(vertices), mc_list_count(vertices));
+		mc_list_destroy(&vertices);
+	}
+
 	graphics_sampler_use(items);
 	graphics_buffer_draw(hotbar_items);
 	graphics_sampler_use(atlas);
 	graphics_buffer_draw(buffer);
+	graphics_buffer_draw(dynamic);
 }
 
 int interface_get_max_hearts(void)
