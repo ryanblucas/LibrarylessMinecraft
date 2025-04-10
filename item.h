@@ -33,7 +33,5 @@ typedef uint8_t block_type_t;
 typedef struct inventory
 {
 	int active_slot;
-	block_type_t items[36], /* First 9 elements are hotbar, then the next 27 are from top to bottom the inventory */
-		armor[4],
-		craft[4];
+	block_type_t items[45]; /* First 9 elements are hotbar, then the next 27 are from top to bottom the inventory. Next 4 are for armor, last 5 are for crafting grid */
 } inventory_t;

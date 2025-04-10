@@ -55,6 +55,7 @@ void game_frame(float delta)
 		window_input_update();
 		player.rotation = (vector3_t){ camera_yaw(), camera_pitch(), 0.0F };
 		world_update(elapsed);
+		interface_update();
 		elapsed -= TICK_TIME;
 
 		if (window_input_clicked(INPUT_TOGGLE_WIREFRAME))
@@ -70,5 +71,5 @@ void game_frame(float delta)
 	world_render(block_shader, liquid_shader, delta);
 
 	graphics_debug_set_wireframe_mode(false);
-	interface_frame();
+	interface_render();
 }

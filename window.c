@@ -284,7 +284,9 @@ void window_input_update(void)
 
 	state[INPUT_TELEPORT_TO_SPAWN] = holding_ctrl && GetAsyncKeyState('T');
 
-	state[INPUT_BREAK_BLOCK] =			GetAsyncKeyState(VK_LBUTTON);
+	state[INPUT_INTERFACE_INTERACT] =	GetAsyncKeyState(VK_LBUTTON);
+
+	state[INPUT_BREAK_BLOCK] =			state[INPUT_INTERFACE_INTERACT];
 	state[INPUT_PLACE_BLOCK] =			GetAsyncKeyState(VK_RBUTTON);
 	state[INPUT_OPEN_INVENTORY] =		GetAsyncKeyState(VK_TAB);
 

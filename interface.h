@@ -23,8 +23,9 @@ extern inline bool rectangle_is_point_inside(rectanglei_t rect, pointi_t point)
 void interface_init(sampler_t item_atlas);
 /* Destroys objects used by user interface */
 void interface_destroy(void);
-/* Updates then draws user interface */
-void interface_frame(void);
+
+void interface_render(void);
+void interface_update(void);
 
 /* Gets max hearts displayed on user interface */
 int interface_get_max_hearts(void);

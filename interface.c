@@ -29,8 +29,9 @@ static rectanglei_t armor_inventory, main_inventory, hotbar_inventory;
 static sampler_t items;
 static int items_width, items_height;
 
-static vertex_buffer_t dynamic;
+static vertex_buffer_t dynamic, dynamic_item;
 static int grabbed_item_index = -1;
+static vector3_t grabbed_item_offset;
 
 void interface_init(sampler_t item_atlas)
 {
@@ -40,6 +41,7 @@ void interface_init(sampler_t item_atlas)
 	buffer = graphics_buffer_create(0, 0, VERTEX_INTERFACE);
 	hotbar_items = graphics_buffer_create(0, 0, VERTEX_INTERFACE);
 	dynamic = graphics_buffer_create(0, 0, VERTEX_INTERFACE);
+	dynamic_item = graphics_buffer_create(0, 0, VERTEX_INTERFACE);
 
 	atlas_width = graphics_sampler_width(atlas);
 	atlas_height = graphics_sampler_height(atlas);
@@ -57,6 +59,7 @@ void interface_destroy(void)
 	graphics_shader_delete(&shader);
 	graphics_sampler_delete(&atlas);
 
+	graphics_buffer_delete(&dynamic_item);
 	graphics_buffer_delete(&dynamic);
 	graphics_buffer_delete(&hotbar_items);
 	graphics_buffer_delete(&buffer);
@@ -233,7 +236,7 @@ static void interface_invalidate_hotbar(array_list_t vertices, array_list_t hotb
 			for (int j = 0; j < 9; j++)
 			{
 				block_type_t item = inventory->items[(i + 1) * 9 + j];
-				if (item != BLOCK_AIR)
+				if (item != BLOCK_AIR && 9 + i * 9 + j != grabbed_item_index)
 				{
 					item--;
 					interface_push_item_square(hotbar_items, vector3_add(inv, (vector3_t) { UI_SCALE, UI_SCALE, -0.2F }), 16 * UI_SCALE, 16 * UI_SCALE, item * 16, 0, 16, 16);
@@ -256,7 +259,7 @@ static void interface_invalidate_hotbar(array_list_t vertices, array_list_t hotb
 		for (int i = 0; i < 9; i++)
 		{
 			block_type_t item = inventory->items[i];
-			if (item != BLOCK_AIR)
+			if (item != BLOCK_AIR && i != grabbed_item_index)
 			{
 				item--;
 				interface_push_item_square(hotbar_items, vector3_add(inv, (vector3_t) { UI_SCALE, UI_SCALE, -0.2F }), 16 * UI_SCALE, 16 * UI_SCALE, item * 16, 0, 16, 16);
@@ -283,7 +286,7 @@ static inline vector3_t interface_inventory_check_region(rectanglei_t region, po
 	return pos;
 }
 
-static void interface_inventory_do_dynamic(array_list_t vertices)
+static void interface_inventory_do_dynamic(array_list_t vertices, array_list_t items_vertices)
 {
 	pointi_t mouse_pos = window_mouse_position();
 	vector3_t pos = { 0 };
@@ -296,9 +299,16 @@ static void interface_inventory_do_dynamic(array_list_t vertices)
 	{
 		interface_push_ui_square(vertices, pos, SLOT_WIDTH, SLOT_HEIGHT, 1, 44, 1, 1);
 	}
+
+	if (grabbed_item_index != -1)
+	{
+		block_type_t item = inventory->items[grabbed_item_index] - 1;
+		vector3_t mouse_pos_v3 = { mouse_pos.x, mouse_pos.y, -0.95F };
+		interface_push_item_square(items_vertices, vector3_sub(mouse_pos_v3, grabbed_item_offset), 16 * UI_SCALE, 16 * UI_SCALE, item * 16, 0, 16, 16);
+	}
 }
 
-void interface_frame(void)
+void interface_render(void)
 {
 	graphics_clear_depth();
 
@@ -338,21 +348,95 @@ void interface_frame(void)
 		invalidate = false;
 	}
 
+	graphics_sampler_use(items);
+	graphics_buffer_draw(hotbar_items);
+
+	graphics_sampler_use(atlas);
+	graphics_buffer_draw(buffer);
+
 	if (show_inventory)
 	{
 		array_list_t vertices = mc_list_create(sizeof(interface_vertex_t));
+		array_list_t items_vertices = mc_list_create(sizeof(interface_vertex_t));
 
-		interface_inventory_do_dynamic(vertices);
+		interface_inventory_do_dynamic(vertices, items_vertices);
 
 		graphics_buffer_modify(dynamic, mc_list_array(vertices), mc_list_count(vertices));
-		mc_list_destroy(&vertices);
-	}
+		graphics_buffer_modify(dynamic_item, mc_list_array(items_vertices), mc_list_count(items_vertices));
 
-	graphics_sampler_use(items);
-	graphics_buffer_draw(hotbar_items);
-	graphics_sampler_use(atlas);
-	graphics_buffer_draw(buffer);
-	graphics_buffer_draw(dynamic);
+		mc_list_destroy(&vertices);
+		mc_list_destroy(&items_vertices);
+
+		graphics_buffer_draw(dynamic);
+		graphics_sampler_use(items);
+		graphics_buffer_draw(dynamic_item);
+	}
+}
+
+void interface_update(void)
+{
+	if (show_inventory)
+	{
+		if (window_input_clicked(INPUT_INTERFACE_INTERACT))
+		{
+			pointi_t mouse_pos = window_mouse_position();
+			int slot = -1;
+			if (rectangle_is_point_inside(main_inventory, mouse_pos))
+			{
+				mouse_pos.x -= main_inventory.x;
+				mouse_pos.y -= main_inventory.y;
+				pointi_t temp = mouse_pos;
+				mouse_pos.x /= SLOT_WIDTH;
+				mouse_pos.y /= SLOT_HEIGHT;
+				grabbed_item_offset = (vector3_t){ temp.x - mouse_pos.x * SLOT_WIDTH, temp.y - mouse_pos.y * SLOT_HEIGHT };
+				slot = 9 + mouse_pos.y * 9 + mouse_pos.x;
+			}
+			else if (rectangle_is_point_inside(hotbar_inventory, mouse_pos))
+			{
+				mouse_pos.x -= hotbar_inventory.x;
+				mouse_pos.y -= hotbar_inventory.y;
+				pointi_t temp = mouse_pos;
+				mouse_pos.x /= SLOT_WIDTH;
+				mouse_pos.y /= SLOT_HEIGHT;
+				grabbed_item_offset = (vector3_t){ temp.x - mouse_pos.x * SLOT_WIDTH, temp.y - mouse_pos.y * SLOT_HEIGHT };
+				slot = mouse_pos.x;
+			}
+			else if (rectangle_is_point_inside(armor_inventory, mouse_pos))
+			{
+				mouse_pos.x -= armor_inventory.x;
+				mouse_pos.y -= armor_inventory.y;
+				pointi_t temp = mouse_pos;
+				mouse_pos.x /= SLOT_WIDTH;
+				mouse_pos.y /= SLOT_HEIGHT;
+				grabbed_item_offset = (vector3_t){ temp.x - mouse_pos.x * SLOT_WIDTH, temp.y - mouse_pos.y * SLOT_HEIGHT };
+				slot = mouse_pos.y + 36;
+			}
+			
+			if (slot != -1)
+			{
+				block_type_t item = inventory->items[slot];
+				if (item == BLOCK_AIR && grabbed_item_index != -1)
+				{
+					inventory->items[slot] = inventory->items[grabbed_item_index];
+					inventory->items[grabbed_item_index] = BLOCK_AIR;
+					grabbed_item_index = -1;
+				}
+				else if (item != BLOCK_AIR)
+				{
+					if (grabbed_item_index != -1)
+					{
+						block_type_t temp = inventory->items[grabbed_item_index];
+						inventory->items[grabbed_item_index] = item;
+						inventory->items[slot] = temp;
+					}
+					else
+					{
+						grabbed_item_index = slot;
+					}
+				}
+			}
+		}
+	}
 }
 
 int interface_get_max_hearts(void)
@@ -384,12 +468,14 @@ bool interface_is_inventory_open(void)
 
 void interface_set_inventory_state(bool state)
 {
+	grabbed_item_index = -1;
 	show_inventory = state;
 	invalidate = true;
 }
 
 void interface_set_inventory(inventory_t* _inventory)
 {
+	grabbed_item_index = -1;
 	inventory = _inventory;
 	invalidate = true;
 }
