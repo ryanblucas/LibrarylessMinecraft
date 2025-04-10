@@ -423,16 +423,19 @@ void interface_update(void)
 				}
 				else if (item != BLOCK_AIR)
 				{
-					if (grabbed_item_index != -1)
+					if (grabbed_item_index == slot)
+					{
+						grabbed_item_index = -1;
+						return;
+					}
+					else if (grabbed_item_index != -1)
 					{
 						block_type_t temp = inventory->items[grabbed_item_index];
 						inventory->items[grabbed_item_index] = item;
 						inventory->items[slot] = temp;
+						return;
 					}
-					else
-					{
-						grabbed_item_index = slot;
-					}
+					grabbed_item_index = slot;
 				}
 			}
 		}
