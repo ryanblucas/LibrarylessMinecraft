@@ -32,6 +32,12 @@ void entity_player_init(entity_t* ent)
 	internal->inventory.items[2] = BLOCK_STONE;
 	internal->inventory.items[3] = BLOCK_LOG;
 
+	internal->inventory.items[9] = BLOCK_WATER;
+	for (int i = BLOCK_LEAVES, j = 10; i < BLOCK_COUNT && j < 36; i++, j++)
+	{
+		internal->inventory.items[j] = i;
+	}
+
 	interface_set_current_hearts(ent->health);
 	interface_set_inventory(&internal->inventory);
 

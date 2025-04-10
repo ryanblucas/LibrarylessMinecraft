@@ -1,10 +1,16 @@
 In order:
 	-Necessary-
-		Inventory
-		Day-night cycle (with that, a lighting shader)
+		Survival items: bows, swords, pickaxes, shovels, and axes.
 		Crafting
+		Survival mobs:
+			Pigs, cows, chickens
+			Sheep (add all wool)
+			Zombies, spiders, skeletons
+			Creepers
+		Day-night cycle (with that, a lighting shader)
 		
 	-Optional-
+		Clean up interface code
 		Don't generate all chunks at the same time, pop them in
 		Separate graphics_debug from graphics
 		Add color to debug primitives

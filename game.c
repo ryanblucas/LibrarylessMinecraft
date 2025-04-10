@@ -16,6 +16,8 @@ static shader_t block_shader;
 static shader_t liquid_shader;
 static sampler_t atlas;
 
+static debug_buffer_t current_block;
+
 void game_init(void)
 {
 	block_shader = graphics_shader_load("assets/shaders/block_vertex.glsl", "assets/shaders/block_fragment.glsl");
@@ -24,6 +26,10 @@ void game_init(void)
 
 	world_init();
 	interface_init(atlas);
+
+	float verts[72];
+	graphics_primitive_cube((vector3_t) { 0 }, (vector3_t) { 1, 1, 1 }, verts);
+	current_block.vertex = graphics_buffer_create(verts, sizeof verts / sizeof * verts / 3, VERTEX_POSITION);
 }
 
 void game_destroy(void)
@@ -33,6 +39,7 @@ void game_destroy(void)
 
 	world_destroy();
 	interface_destroy();
+	graphics_buffer_delete(&current_block.vertex);
 }
 
 void game_frame(float delta)
@@ -72,4 +79,11 @@ void game_frame(float delta)
 
 	graphics_debug_set_wireframe_mode(false);
 	interface_render();
+
+	ray_t ray = world_ray_cast(camera_position(), camera_forward(), 5.0F, RAY_SOLID);
+	if (!IS_INVALID_BLOCK_COORDS(ray.block))
+	{
+		current_block.position = (vector3_t){ ray.block.x, ray.block.y, ray.block.z };
+		graphics_debug_queue_buffer(current_block);
+	}
 }
