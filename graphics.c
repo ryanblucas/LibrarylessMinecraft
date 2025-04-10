@@ -208,8 +208,8 @@ sampler_t graphics_sampler_load(const char* path)
 
 void graphics_sampler_delete(sampler_t* sampler)
 {
+	glDeleteTextures(1, (*sampler)->res);
 	free(*sampler);
-	glDeleteTextures(1, sampler);
 	*sampler = NULL;
 	ASSERT_NO_ERROR();
 }
@@ -627,7 +627,7 @@ void graphics_debug_draw(void)
 	if (visualize_axis)
 	{
 		matrix_t x, y, res;
-		matrix_rotate_x(camera_pitch(), x);
+		matrix_rotate_x(-camera_pitch(), x);
 		matrix_rotate_y(camera_yaw(), y);
 		matrix_scale((vector3_t) { 0.3F, 0.3F, 0.3F }, res);
 		matrix_multiply(res, y, res);

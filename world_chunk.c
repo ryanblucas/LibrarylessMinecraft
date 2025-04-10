@@ -7,11 +7,9 @@
 #include "world.h"
 #include "perlin.h"
 
-#if _DEBUG
-#include "window.h"
-#endif
-
+#define START_RADIUS 2
 #define RADIUS 8
+
 #define BLOCK_RADIUS (RADIUS * 16)
 #define PERLIN_MODIFIER (1.0 / 16.0)
 #define TWISTINESS (1.0F / 64.0F)
@@ -27,21 +25,13 @@ void world_chunk_init(unsigned int seed)
 	chunk_list = mc_list_create(sizeof(struct chunk));
 	cave_blocks = mc_list_create(sizeof(block_coords_t));
 	perlin_terrain = perlin_create_with_seed(seed);
-#if _DEBUG
-	double start = window_time();
-#endif
-	for (int y = -RADIUS; y < RADIUS; y++)
+	for (int y = -START_RADIUS; y < START_RADIUS; y++)
 	{
-		for (int x = -RADIUS; x < RADIUS; x++)
+		for (int x = -START_RADIUS; x < START_RADIUS; x++)
 		{
 			world_chunk_create(x * 16, y * 16);
 		}
 	}
-#if _DEBUG
-	double end = window_time();
-	printf("Generating %i chunks took %fs. Avg chunk gen time: %fs.\n", RADIUS * RADIUS * 4, end - start, (end - start) / (RADIUS * RADIUS * 4));
-#endif
-	assert(mc_list_count(chunk_list) == RADIUS * RADIUS * 4); /* TO DO: bug where chunks may just not spawn */
 }
 
 void world_chunk_destroy(void)
@@ -298,4 +288,10 @@ struct chunk* world_chunk_get(int x, int z)
 		}
 	}
 	return NULL;
+}
+
+void world_chunk_update(void)
+{
+	vector3_t player_location = aabb_get_center(player.hitbox);
+
 }

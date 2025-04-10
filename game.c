@@ -49,7 +49,8 @@ void game_frame(float delta)
 
 	vector3_t curr_pos = aabb_get_center(player.hitbox);
 	vector3_t interp_pos = vector3_add(player.prev_position, vector3_mul_scalar(vector3_sub(curr_pos, player.prev_position), elapsed / TICK_TIME));
-	camera_update(vector3_add(interp_pos, (vector3_t) { 0.0F, ENTITY_PLAYER_CAMERA_OFFSET - aabb_dimensions(player.hitbox).y / 2.0F, 0.0F }));
+	vector3_t cam_pos = vector3_add(interp_pos, (vector3_t) { 0.0F, ENTITY_PLAYER_CAMERA_OFFSET - aabb_dimensions(player.hitbox).y / 2.0F, 0.0F });
+	camera_update(cam_pos);
 
 	if (window_input_clicked(INPUT_REGENERATE_WORLD))
 	{
@@ -59,6 +60,12 @@ void game_frame(float delta)
 	static bool wireframe_on;
 	if (elapsed > TICK_TIME)
 	{
+		interface_set_underwater_state(false);
+		if (world_block_get(vector_to_block_coords(cam_pos)) == BLOCK_WATER)
+		{
+			interface_set_underwater_state(true);
+		}
+
 		window_input_update();
 		player.rotation = (vector3_t){ camera_yaw(), camera_pitch(), 0.0F };
 		world_update(elapsed);

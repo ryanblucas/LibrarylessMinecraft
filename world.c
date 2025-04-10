@@ -351,6 +351,7 @@ void world_update(float delta)
 
 	world_block_tick();
 	entity_player_update(&player, delta);
+	world_chunk_update();
 
 	ticks++;
 }

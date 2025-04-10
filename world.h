@@ -123,6 +123,8 @@ void world_render_destroy(void);
 void world_chunk_init(unsigned int seed);
 /* Destroys chunk manager */
 void world_chunk_destroy(void);
+/* Updates chunk manager */
+void world_chunk_update(void);
 /* Creates chunk at (x, z). Rounds down to a multiple to 16 (ex. 14 -> 0, -5 -> -16) */
 struct chunk* world_chunk_create(int x_o, int z_o);
 /* Gets chunk containing block at (x, z). Returns NULL if it does not exist. */

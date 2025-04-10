@@ -7,5 +7,5 @@ uniform sampler2D sampler;
 
 void main()
 {
-	color = vec4((tint & 0xFF) / 255.0F, ((tint >> 8) & 0xFF) / 255.0F, ((tint >> 16) & 0xFF) / 255.0F, 1.0) * texture(sampler, tex_pos);
+	color = vec4((tint & 0xFF) / 255.0F, ((tint >> 8) & 0xFF) / 255.0F, ((tint >> 16) & 0xFF) / 255.0F, ((tint >> 24) & 0xFF) / 255.0F) * texture(sampler, tex_pos);
 }

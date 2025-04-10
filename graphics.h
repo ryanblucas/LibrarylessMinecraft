@@ -7,10 +7,12 @@
 #include <stdint.h>
 #include "util.h"
 
-#define COLOR_CREATE(r, g, b)	(((r) & 0xFF) | (((g) & 0xFF) << 8) | (((b) & 0xFF) << 16))
+#define COLORA_CREATE(r, g, b, a) (((r) & 0xFF) | (((g) & 0xFF) << 8) | (((b) & 0xFF) << 16) | (((a) & 0xFF) << 24))
+#define COLOR_CREATE(r, g, b)	COLORA_CREATE(r, g, b, 255)
 #define COLOR_RED(packed)		((packed) & 0xFF)
 #define COLOR_GREEN(packed)		(((packed) >> 8) & 0xFF)
 #define COLOR_BLUE(packed)		(((packed) >> 16) & 0xFF)
+#define COLOR_ALPHA(packed)		(((packed) >> 24) & 0xFF)
 
 typedef uint32_t color_t;
 

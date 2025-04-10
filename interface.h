@@ -42,3 +42,8 @@ bool interface_is_inventory_open(void);
 void interface_set_inventory_state(bool state);
 /* Sets inventory for the interface to show on screen. The interface can change the contents of the items around. */
 void interface_set_inventory(inventory_t* inventory);
+
+/* Gets if the interface is currently rendering an underwater overlay */
+bool interface_is_underwater(void);
+/* Sets underwater overlay visiblity state, true for being underwater, false for no overlay */
+void interface_set_underwater_state(bool state);

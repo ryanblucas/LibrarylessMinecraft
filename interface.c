@@ -33,6 +33,8 @@ static vertex_buffer_t dynamic, dynamic_item;
 static int grabbed_item_index = -1;
 static vector3_t grabbed_item_offset;
 
+static bool underwater;
+
 void interface_init(sampler_t item_atlas)
 {
 	shader = graphics_shader_load("assets/shaders/interface_vertex.glsl", "assets/shaders/interface_fragment.glsl");
@@ -65,11 +67,11 @@ void interface_destroy(void)
 	graphics_buffer_delete(&buffer);
 }
 
-static void interface_push_square(array_list_t vertices, int atlas_wx, int atlas_wy, vector3_t pos, float wx, float wy, float up, float vp, float ud, float vd)
+static void interface_push_square(array_list_t vertices, int atlas_wx, int atlas_wy, vector3_t pos, color_t color, float wx, float wy, float up, float vp, float ud, float vd)
 {
 	interface_vertex_t a, b, c, d;
 
-	a.color = b.color = c.color = d.color = COLOR_CREATE(255, 255, 255);
+	a.color = b.color = c.color = d.color = color;
 
 	a.x = pos.x;
 	a.y = pos.y;
@@ -105,12 +107,22 @@ static void interface_push_square(array_list_t vertices, int atlas_wx, int atlas
 
 static inline void interface_push_ui_square(array_list_t vertices, vector3_t pos, float wx, float wy, float up, float vp, float ud, float vd)
 {
-	interface_push_square(vertices, atlas_width, atlas_height, pos, wx, wy, up, vp, ud, vd);
+	interface_push_square(vertices, atlas_width, atlas_height, pos, COLOR_CREATE(255, 255, 255), wx, wy, up, vp, ud, vd);
 }
 
 static inline void interface_push_item_square(array_list_t vertices, vector3_t pos, float wx, float wy, float up, float vp, float ud, float vd)
 {
-	interface_push_square(vertices, items_width, items_height, pos, wx, wy, up, vp, ud, vd);
+	interface_push_square(vertices, items_width, items_height, pos, COLOR_CREATE(255, 255, 255), wx, wy, up, vp, ud, vd);
+}
+
+static inline void interface_push_ui_square_color(array_list_t vertices, vector3_t pos, color_t color, float wx, float wy, float up, float vp, float ud, float vd)
+{
+	interface_push_square(vertices, atlas_width, atlas_height, pos, color, wx, wy, up, vp, ud, vd);
+}
+
+static inline void interface_push_item_square_color(array_list_t vertices, vector3_t pos, color_t color, float wx, float wy, float up, float vp, float ud, float vd)
+{
+	interface_push_square(vertices, items_width, items_height, pos, color, wx, wy, up, vp, ud, vd);
 }
 
 #define UI_SCALE		3
@@ -339,6 +351,10 @@ void interface_render(void)
 
 		interface_invalidate_hearts(vertices);
 		interface_invalidate_hotbar(vertices, hotbar_items_vertices);
+		if (underwater)
+		{
+			interface_push_item_square_color(hotbar_items_vertices, (vector3_t) { 0, 0, 0.95F }, COLORA_CREATE(255, 255, 255, 100), width, height, BLOCK_WATER * 16 - 16, 0, 16, 16);
+		}
 
 		graphics_buffer_modify(buffer, mc_list_array(vertices), mc_list_count(vertices));
 		graphics_buffer_modify(hotbar_items, mc_list_array(hotbar_items_vertices), mc_list_count(hotbar_items_vertices));
@@ -454,12 +470,20 @@ int interface_get_current_hearts(void)
 
 void interface_set_max_hearts(int hearts)
 {
+	if (max_hearts == hearts)
+	{
+		return;
+	}
 	max_hearts = hearts;
 	invalidate = true;
 }
 
 void interface_set_current_hearts(int _hearts)
 {
+	if (_hearts == hearts)
+	{
+		return;
+	}
 	hearts = _hearts;
 	invalidate = true;
 }
@@ -471,6 +495,10 @@ bool interface_is_inventory_open(void)
 
 void interface_set_inventory_state(bool state)
 {
+	if (show_inventory == state)
+	{
+		return;
+	}
 	grabbed_item_index = -1;
 	show_inventory = state;
 	invalidate = true;
@@ -478,7 +506,26 @@ void interface_set_inventory_state(bool state)
 
 void interface_set_inventory(inventory_t* _inventory)
 {
+	if (inventory == _inventory)
+	{
+		return;
+	}
 	grabbed_item_index = -1;
 	inventory = _inventory;
+	invalidate = true;
+}
+
+bool interface_is_underwater(void)
+{
+	return underwater;
+}
+
+void interface_set_underwater_state(bool state)
+{
+	if (underwater == state)
+	{
+		return;
+	}
+	underwater = state;
 	invalidate = true;
 }
