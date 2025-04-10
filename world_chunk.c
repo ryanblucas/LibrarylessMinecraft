@@ -8,13 +8,17 @@
 #include "perlin.h"
 
 #define START_RADIUS 2
-#define RADIUS 8
+#define RADIUS 6
 
 #define BLOCK_RADIUS (RADIUS * 16)
 #define PERLIN_MODIFIER (1.0 / 16.0)
 #define TWISTINESS (1.0F / 64.0F)
 
+#define MAX_CHUNKS_PER_TICK 2
+
 array_list_t chunk_list;
+
+static hash_set_t chunks_to_generate;
 
 /* The problem is that if the chunk already exists, it doesn't dig into it. */
 static array_list_t cave_blocks;
@@ -32,6 +36,8 @@ void world_chunk_init(unsigned int seed)
 			world_chunk_create(x * 16, y * 16);
 		}
 	}
+
+	chunks_to_generate = mc_set_create(sizeof(block_coords_t));
 }
 
 void world_chunk_destroy(void)
@@ -44,6 +50,8 @@ void world_chunk_destroy(void)
 	mc_list_destroy(&chunk_list);
 	mc_list_destroy(&cave_blocks);
 	perlin_delete(&perlin_terrain);
+
+	mc_set_destroy(&chunks_to_generate);
 }
 
 static void world_chunk_spawn_vain(struct chunk* curr, block_type_t type, block_coords_t pos, int size_min, int size_max)
@@ -290,8 +298,47 @@ struct chunk* world_chunk_get(int x, int z)
 	return NULL;
 }
 
+struct iterate_state
+{
+	int left;
+	block_coords_t arr[MAX_CHUNKS_PER_TICK];
+};
+
+static bool world_chunk_map_iterate(const hash_set_t set, void* value, void* user)
+{
+	struct iterate_state* state = (struct iterate_state*)user;
+	block_coords_t* to_load = (block_coords_t*)value;
+	
+	world_chunk_create(to_load->x, to_load->z);
+	state->arr[--state->left] = *to_load;
+
+	return state->left > 0;
+}
+
 void world_chunk_update(void)
 {
-	vector3_t player_location = aabb_get_center(player.hitbox);
-
+	block_coords_t player_location = vector_to_block_coords(aabb_get_center(player.hitbox));
+	player_location.x = ROUND_DOWN(player_location.x, CHUNK_WX);
+	player_location.z = ROUND_DOWN(player_location.z, CHUNK_WZ);
+	player_location.y = 0;
+	for (int i = -RADIUS; i < RADIUS; i++)
+	{
+		for (int j = -RADIUS; j < RADIUS; j++)
+		{
+			block_coords_t chunk_pos = player_location;
+			chunk_pos.x += i * CHUNK_WX;
+			chunk_pos.z += j * CHUNK_WZ;
+			if (!world_chunk_get(chunk_pos.x, chunk_pos.z))
+			{
+				mc_set_add(chunks_to_generate, &chunk_pos, sizeof chunk_pos);
+			}
+		}
+	}
+	struct iterate_state state;
+	state.left = MAX_CHUNKS_PER_TICK;
+	mc_set_iterate(chunks_to_generate, world_chunk_map_iterate, &state);
+	for (int i = 0; i < MAX_CHUNKS_PER_TICK; i++)
+	{
+		mc_set_remove(chunks_to_generate, &state.arr[i], sizeof state.arr[i]);
+	}
 }

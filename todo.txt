@@ -11,7 +11,6 @@ In order:
 		
 	-Optional-
 		Clean up interface code
-		Don't generate all chunks at the same time, pop them in
 		Separate graphics_debug from graphics
 		Add color to debug primitives
 		Further speed up meshing chunks and generating them
