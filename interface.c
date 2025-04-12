@@ -395,6 +395,7 @@ void interface_update(void)
 	{
 		if (window_input_clicked(INPUT_INTERFACE_INTERACT))
 		{
+			vector3_t offset = grabbed_item_offset;
 			pointi_t mouse_pos = window_mouse_position();
 			int slot = -1;
 			if (rectangle_is_point_inside(main_inventory, mouse_pos))
@@ -449,6 +450,7 @@ void interface_update(void)
 						block_type_t temp = inventory->items[grabbed_item_index];
 						inventory->items[grabbed_item_index] = item;
 						inventory->items[slot] = temp;
+						grabbed_item_offset = offset;
 						return;
 					}
 					grabbed_item_index = slot;
