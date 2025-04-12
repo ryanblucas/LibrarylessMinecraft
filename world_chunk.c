@@ -14,7 +14,7 @@
 #define PERLIN_MODIFIER (1.0 / 16.0)
 #define TWISTINESS (1.0F / 64.0F)
 
-#define MAX_CHUNKS_PER_TICK 2
+#define MAX_CHUNKS_PER_TICK 1
 
 array_list_t chunk_list;
 
@@ -304,6 +304,14 @@ struct iterate_state
 	block_coords_t arr[MAX_CHUNKS_PER_TICK];
 };
 
+static inline void world_chunk_make_dirty(struct chunk* chunk, int mask)
+{
+	if (chunk)
+	{
+		chunk->dirty_mask |= mask;
+	}
+}
+
 static bool world_chunk_map_iterate(const hash_set_t set, void* value, void* user)
 {
 	struct iterate_state* state = (struct iterate_state*)user;
@@ -311,6 +319,11 @@ static bool world_chunk_map_iterate(const hash_set_t set, void* value, void* use
 	
 	world_chunk_create(to_load->x, to_load->z);
 	state->arr[--state->left] = *to_load;
+
+	world_chunk_make_dirty(world_chunk_get(to_load->x - CHUNK_WX, to_load->z), OPAQUE_BIT | LIQUID_BIT);
+	world_chunk_make_dirty(world_chunk_get(to_load->x + CHUNK_WX, to_load->z), OPAQUE_BIT | LIQUID_BIT);
+	world_chunk_make_dirty(world_chunk_get(to_load->x, to_load->z - CHUNK_WZ), OPAQUE_BIT | LIQUID_BIT);
+	world_chunk_make_dirty(world_chunk_get(to_load->x, to_load->z + CHUNK_WZ), OPAQUE_BIT | LIQUID_BIT);
 
 	return state->left > 0;
 }

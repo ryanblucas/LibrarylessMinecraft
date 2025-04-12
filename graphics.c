@@ -208,7 +208,7 @@ sampler_t graphics_sampler_load(const char* path)
 
 void graphics_sampler_delete(sampler_t* sampler)
 {
-	glDeleteTextures(1, (*sampler)->res);
+	glDeleteTextures(1, &(*sampler)->res);
 	free(*sampler);
 	*sampler = NULL;
 	ASSERT_NO_ERROR();

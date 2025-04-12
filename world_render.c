@@ -287,7 +287,7 @@ static void world_chunk_clean_liquid(struct chunk* chunk)
 	chunk->dirty_mask ^= LIQUID_BIT;
 }
 
-void world_chunk_clean_mesh(int index)
+void world_chunk_clean_mesh(struct chunk* chunk)
 {
 	/*	This is NOT a greedy mesher. That's because texture wrapping is impossible with texture atlases, but using
 		texture arrays with a greedy mesher fixes that problem AND the mipmapping problem. Just a thought, TO DO */
@@ -299,7 +299,6 @@ void world_chunk_clean_mesh(int index)
 		block_vertex_list->count = 0;
 	}
 
-	struct chunk* chunk = MC_LIST_CAST_GET(chunk_list, index, struct chunk);
 	if (chunk->dirty_mask & OPAQUE_BIT)
 	{
 		world_chunk_clean(chunk);
@@ -337,7 +336,7 @@ void world_render(const shader_t solid, const shader_t liquid, float delta)
 	for (int i = 0; i < mc_list_count(chunk_list); i++)
 	{
 		struct chunk* chunk = MC_LIST_CAST_GET(chunk_list, i, struct chunk);
-		world_chunk_clean_mesh(i);
+		world_chunk_clean_mesh(chunk);
 
 		matrix_t transform;
 		matrix_translation((vector3_t) { (float)chunk->x, 0.0F, (float)chunk->z }, transform);

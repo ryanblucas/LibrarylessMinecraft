@@ -129,7 +129,7 @@ void world_chunk_update(void);
 struct chunk* world_chunk_create(int x_o, int z_o);
 /* Gets chunk containing block at (x, z). Returns NULL if it does not exist. */
 struct chunk* world_chunk_get(int x, int z);
-/* Cleans chunk at index in chunk list. */
-void world_chunk_clean_mesh(int index);
+/* Cleans chunk's mesh */
+void world_chunk_clean_mesh(struct chunk* chunk);
 
 #endif

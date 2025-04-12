@@ -1,12 +1,13 @@
 In order:
 	-Necessary-
-		Survival items: bows, swords, pickaxes, shovels, and axes.
-		Crafting
+		Save unloaded chunks to disk
 		Survival mobs:
 			Pigs, cows, chickens
 			Sheep (add all wool)
 			Zombies, spiders, skeletons
 			Creepers
+		Survival items: bows, swords, pickaxes, shovels, and axes.
+		Crafting
 		Day-night cycle (with that, a lighting shader)
 		
 	-Optional-
