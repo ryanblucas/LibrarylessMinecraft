@@ -103,6 +103,7 @@ struct chunk
 	int dirty_mask;
 	vertex_buffer_t opaque_buffer, liquid_buffer;
 	block_type_t arr[CHUNK_BLOCK_COUNT];
+	bool generating; /* Is the chunk currently being generated? */
 };
 
 extern array_list_t chunk_list;		/* struct chunk array_list */

@@ -14,7 +14,7 @@
 #define PERLIN_MODIFIER (1.0 / 16.0)
 #define TWISTINESS (1.0F / 64.0F)
 
-#define MAX_CHUNKS_PER_TICK 1
+#define MAX_CHUNKS_PER_TICK 2
 
 array_list_t chunk_list;
 
@@ -181,8 +181,8 @@ static inline void world_chunk_remove_sphere(block_coords_t pos, int radius)
 	vector3_t fpos = block_coords_to_vector(pos);
 	int radius_squared = radius * radius;
 
-	int cx = pos.x, cz = pos.z;
-	bool chunk_exists = world_chunk_get(cx, cz);
+	int cx = INT_MIN, cz = INT_MIN;
+	bool chunk_exists = false;
 
 	for (int x = pos.x - radius; x < pos.x + radius; x++)
 	{
@@ -194,7 +194,8 @@ static inline void world_chunk_remove_sphere(block_coords_t pos, int radius)
 				{
 					if (ROUND_DOWN(cx, 16) != ROUND_DOWN(x, 16) || ROUND_DOWN(cz, 16) != ROUND_DOWN(z, 16))
 					{
-						chunk_exists = !!world_chunk_get(x, z);
+						struct chunk* chunk = world_chunk_get(x, z);
+						chunk_exists = !!chunk && !chunk->generating;
 						cx = x;
 						cz = z;
 					}
@@ -210,8 +211,9 @@ static inline void world_chunk_remove_sphere(block_coords_t pos, int radius)
 	}
 }
 
-static void world_chunk_worm(void)
+static void world_chunk_worm(struct chunk* next)
 {
+	vector3_t chunk_pos = { next->x, 0, next->z };
 	vector3_t seg_pos = { BLOCK_RADIUS - rand() % (BLOCK_RADIUS * 2), rand() % (CHUNK_WY / 3), BLOCK_RADIUS - rand() % (BLOCK_RADIUS * 2) };
 	vector3_t noise_pos = { 7.0 / 2048.0, 1163.0 / 2048.0, 409.0 / 2048.0 };
 	int segments = rand() % 64 + 64;
@@ -223,7 +225,7 @@ static void world_chunk_worm(void)
 		vector3_t offset = { cosf(noiseX * 2.0 * M_PI), sinf(noiseY * 0.25 * M_PI), sinf(noiseZ * 2.0 * M_PI) };
 
 		/* slow way of doing it */
-		world_chunk_remove_sphere(vector_to_block_coords(seg_pos), 3);
+		world_chunk_remove_sphere(vector_to_block_coords(vector3_add(seg_pos, chunk_pos)), 3);
 
 		offset.y = -fabsf(offset.y);
 		seg_pos = vector3_add(seg_pos, offset);
@@ -262,6 +264,8 @@ struct chunk* world_chunk_create(int x_o, int z_o)
 	int res = mc_list_add(chunk_list, mc_list_count(chunk_list), NULL, sizeof(struct chunk));
 	struct chunk* next = MC_LIST_CAST_GET(chunk_list, res, struct chunk);
 
+	next->generating = true;
+
 	next->x = x_o;
 	next->z = z_o;
 
@@ -271,7 +275,7 @@ struct chunk* world_chunk_create(int x_o, int z_o)
 	int cave_count = rand() % 2 + 1;
 	for (int i = 0; i < cave_count; i++)
 	{
-		world_chunk_worm();
+		world_chunk_worm(next);
 	}
 	world_chunk_delete_cave_blocks(next);
 	world_chunk_spawn_ores(next);
@@ -280,6 +284,8 @@ struct chunk* world_chunk_create(int x_o, int z_o)
 	next->dirty_mask = OPAQUE_BIT;
 	next->opaque_buffer = graphics_buffer_create(NULL, 0, VERTEX_BLOCK);
 	next->liquid_buffer = graphics_buffer_create(NULL, 0, VERTEX_BLOCK);
+
+	next->generating = false;
 	return next;
 }
 
