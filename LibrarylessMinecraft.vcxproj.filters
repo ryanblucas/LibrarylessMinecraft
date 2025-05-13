@@ -48,6 +48,9 @@
     <ClCompile Include="interface.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="world_file.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="opengl.h">

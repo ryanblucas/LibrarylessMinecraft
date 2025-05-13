@@ -49,7 +49,7 @@ void game_frame(float delta)
 
 	vector3_t curr_pos = aabb_get_center(player.hitbox);
 	vector3_t interp_pos = vector3_add(player.prev_position, vector3_mul_scalar(vector3_sub(curr_pos, player.prev_position), elapsed / TICK_TIME));
-	vector3_t cam_pos = vector3_add(interp_pos, (vector3_t) { 0.0F, ENTITY_PLAYER_CAMERA_OFFSET - aabb_dimensions(player.hitbox).y / 2.0F, 0.0F });
+	vector3_t cam_pos = vector3_add(interp_pos, (vector3_t) { 0.0F, ENTITY_PLAYER_CAMERA_OFFSET - aabb_get_dimensions(player.hitbox).y / 2.0F, 0.0F });
 	camera_update(cam_pos);
 
 	if (window_input_clicked(INPUT_REGENERATE_WORLD))

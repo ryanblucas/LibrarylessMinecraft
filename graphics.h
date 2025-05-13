@@ -100,7 +100,7 @@ void graphics_buffer_delete(vertex_buffer_t* buffer);
 void graphics_buffer_draw(vertex_buffer_t buffer);
 
 #define GRAPHICS_DEBUG_SET_BLOCK(coords) graphics_debug_set_cube(block_coords_to_vector(coords), (vector3_t) { 1.0F, 1.0F, 1.0F })
-#define GRAPHICS_DEBUG_SET_AABB(aabb) graphics_debug_set_cube((aabb).min, aabb_dimensions(aabb))
+#define GRAPHICS_DEBUG_SET_AABB(aabb) graphics_debug_set_cube((aabb).min, aabb_get_dimensions(aabb))
 
 typedef struct debug_buffer
 {

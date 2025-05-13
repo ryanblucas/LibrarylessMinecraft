@@ -1,6 +1,5 @@
 In order:
 	-Necessary-
-		Save unloaded chunks to disk
 		Survival mobs:
 			Pigs, cows, chickens
 			Sheep (add all wool)

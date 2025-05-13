@@ -90,6 +90,9 @@ void world_update(float delta);
 /* Renders world to screen */
 void world_render(const shader_t solid, const shader_t liquid, float delta);
 
+/* Gets world seed */
+unsigned int world_seed(void);
+
 #ifdef WORLD_INTERNAL
 
 #include "graphics.h"
@@ -117,6 +120,9 @@ extern array_list_t chunk_list;		/* struct chunk array_list */
 #define CHUNK_FY(mask)			(float)((mask) / CHUNK_FLOOR_BLOCK_COUNT)
 #define CHUNK_FZ(mask)			(float)(((mask) % CHUNK_FLOOR_BLOCK_COUNT) / CHUNK_WX)
 
+#define RADIUS 6
+#define RADIUS_BLOCKS (RADIUS * 16)
+
 void world_render_init(void);
 void world_render_destroy(void);
 
@@ -126,11 +132,27 @@ void world_chunk_init(unsigned int seed);
 void world_chunk_destroy(void);
 /* Updates chunk manager */
 void world_chunk_update(void);
+
 /* Creates chunk at (x, z). Rounds down to a multiple to 16 (ex. 14 -> 0, -5 -> -16) */
 struct chunk* world_chunk_create(int x_o, int z_o);
+/* Adds chunk to list */
+struct chunk* world_chunk_add(int x, int z, block_type_t chunk[CHUNK_BLOCK_COUNT]);
+/* Removes chunk at position */
+void world_chunk_remove(int x, int z);
 /* Gets chunk containing block at (x, z). Returns NULL if it does not exist. */
 struct chunk* world_chunk_get(int x, int z);
 /* Cleans chunk's mesh */
 void world_chunk_clean_mesh(struct chunk* chunk);
+
+/* Saves chunk to file */
+void world_file_load_world(unsigned int fallback_seed);
+/* Saves chunk to file */
+void world_file_save_chunk(int x, int z);
+/* Saves current loaded chunks and player position to file */
+void world_file_save_current(void);
+/* Deletes current world file */
+void world_file_delete(void);
+/* Loads chunk from file. If it doesn't exist, returns NULL */
+struct chunk* world_file_find_chunk(int x, int z);
 
 #endif

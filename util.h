@@ -594,9 +594,17 @@ extern inline aabb_t aabb_translate_axis(aabb_t aabb, axis_t axis_i, float value
 	return aabb_translate(aabb, axis.vec);
 }
 
-extern inline vector3_t aabb_dimensions(aabb_t aabb)
+extern inline vector3_t aabb_get_dimensions(aabb_t aabb)
 {
 	return vector3_sub(aabb.max, aabb.min);
+}
+
+extern inline aabb_t aabb_set_dimensions(aabb_t aabb, vector3_t size)
+{
+	vector3_t dim_2 = vector3_mul_scalar(size, 0.5F);
+	aabb.min = vector3_sub(aabb.min, dim_2);
+	aabb.max = vector3_add(aabb.max, dim_2);
+	return aabb;
 }
 
 extern inline vector3_t aabb_collision_depth(aabb_t a, aabb_t b)

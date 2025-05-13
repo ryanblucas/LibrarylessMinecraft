@@ -7,9 +7,6 @@
 #include "world.h"
 #include "perlin.h"
 
-#define START_RADIUS 2
-#define RADIUS 6
-
 #define BLOCK_RADIUS (RADIUS * 16)
 #define PERLIN_MODIFIER (1.0 / 16.0)
 #define TWISTINESS (1.0F / 64.0F)
@@ -28,15 +25,7 @@ void world_chunk_init(unsigned int seed)
 {
 	chunk_list = mc_list_create(sizeof(struct chunk));
 	cave_blocks = mc_list_create(sizeof(block_coords_t));
-	perlin_terrain = perlin_create_with_seed(seed);
-	for (int y = -START_RADIUS; y < START_RADIUS; y++)
-	{
-		for (int x = -START_RADIUS; x < START_RADIUS; x++)
-		{
-			world_chunk_create(x * 16, y * 16);
-		}
-	}
-
+	perlin_terrain = perlin_create_with_seed(50);
 	chunks_to_generate = mc_set_create(sizeof(block_coords_t));
 }
 
@@ -289,6 +278,45 @@ struct chunk* world_chunk_create(int x_o, int z_o)
 	return next;
 }
 
+struct chunk* world_chunk_add(int x, int z, block_type_t chunk[CHUNK_BLOCK_COUNT])
+{
+	if (world_chunk_get(x, z))
+	{
+		world_chunk_remove(x, z);
+	}
+
+	int res = mc_list_add(chunk_list, mc_list_count(chunk_list), NULL, sizeof(struct chunk));
+	struct chunk* next = MC_LIST_CAST_GET(chunk_list, res, struct chunk);
+
+	next->x = ROUND_DOWN(x, CHUNK_WX);
+	next->z = ROUND_DOWN(z, CHUNK_WZ);
+
+	memcpy(next->arr, chunk, sizeof * chunk * CHUNK_BLOCK_COUNT);
+
+	next->dirty_mask = OPAQUE_BIT;
+	next->opaque_buffer = graphics_buffer_create(NULL, 0, VERTEX_BLOCK);
+	next->liquid_buffer = graphics_buffer_create(NULL, 0, VERTEX_BLOCK);
+
+	return next;
+}
+
+void world_chunk_remove(int x, int z)
+{
+	x = ROUND_DOWN(x, CHUNK_WX);
+	z = ROUND_DOWN(z, CHUNK_WZ);
+	struct chunk* block_vertex_list = mc_list_array(chunk_list);
+	for (int i = 0; i < mc_list_count(chunk_list); i++)
+	{
+		if (block_vertex_list[i].x == x && block_vertex_list[i].z == z)
+		{
+			graphics_buffer_delete(&block_vertex_list[i].opaque_buffer);
+			graphics_buffer_delete(&block_vertex_list[i].liquid_buffer);
+			mc_list_remove(chunk_list, i, NULL, sizeof(struct chunk));
+			return;
+		}
+	}
+}
+
 struct chunk* world_chunk_get(int x, int z)
 {
 	x = ROUND_DOWN(x, CHUNK_WX);
@@ -323,8 +351,13 @@ static bool world_chunk_map_iterate(const hash_set_t set, void* value, void* use
 	struct iterate_state* state = (struct iterate_state*)user;
 	block_coords_t* to_load = (block_coords_t*)value;
 	
-	world_chunk_create(to_load->x, to_load->z);
-	state->arr[--state->left] = *to_load;
+	/* finding chunk creates it */
+	struct chunk* chunk = world_file_find_chunk(to_load->x, to_load->z);
+	if (!chunk)
+	{
+		world_chunk_create(to_load->x, to_load->z);
+		state->arr[--state->left] = *to_load;
+	}
 
 	world_chunk_make_dirty(world_chunk_get(to_load->x - CHUNK_WX, to_load->z), OPAQUE_BIT | LIQUID_BIT);
 	world_chunk_make_dirty(world_chunk_get(to_load->x + CHUNK_WX, to_load->z), OPAQUE_BIT | LIQUID_BIT);
@@ -360,4 +393,9 @@ void world_chunk_update(void)
 	{
 		mc_set_remove(chunks_to_generate, &state.arr[i], sizeof state.arr[i]);
 	}
+}
+
+unsigned int world_seed(void)
+{
+	return perlin_get_seed(perlin_terrain);
 }

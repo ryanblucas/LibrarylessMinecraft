@@ -19,7 +19,7 @@ void world_init(void)
 {
 	update_list = mc_set_create(sizeof(block_coords_t));
 	old_update_list = mc_set_create(sizeof(block_coords_t));
-	world_chunk_init((unsigned int)window_time());
+	world_file_load_world((unsigned int)window_time());
 	world_render_init();
 
 	entity_player_init(&player);
@@ -27,6 +27,7 @@ void world_init(void)
 
 void world_destroy(void)
 {
+	world_file_save_current();
 	world_chunk_destroy();
 	world_render_destroy();
 	mc_set_destroy(&update_list);
@@ -36,7 +37,9 @@ void world_destroy(void)
 void world_generate(unsigned int seed)
 {
 	world_chunk_destroy();
+	world_file_delete();
 	world_chunk_init(seed);
+	world_file_save_current();
 }
 
 int world_ticks(void)
@@ -353,5 +356,10 @@ void world_update(float delta)
 	entity_player_update(&player, delta);
 	world_chunk_update();
 
+	/* so it doesn't save first tick */
 	ticks++;
+	if (ticks % (20 * 60 * 5) == 0)
+	{
+		world_file_save_current();
+	}
 }
